@@ -6,6 +6,14 @@ import { createClient } from '@/lib/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
+import {
+    SkillsPieChart,
+    SkillProficiencyChart,
+    GoalProgressTimeline,
+    ActivityHeatmap,
+    SkillGrowthTrend,
+    GoalCompletionRate,
+} from '@/components/AnalyticsCharts';
 
 interface DashboardStats {
     totalSkills: number;
@@ -20,9 +28,19 @@ interface DashboardStats {
     recentGoals: Array<{ title: string; status: string; created_at: string }>;
 }
 
+interface AnalyticsData {
+    skillsPieData: Array<{ name: string; value: number }>;
+    skillProficiencyData: Array<{ category: string; beginner: number; intermediate: number; advanced: number; expert: number }>;
+    goalTimelineData: Array<{ month: string; completed: number; active: number; total: number }>;
+    activityHeatmapData: Array<{ day: string; activities: number }>;
+    skillGrowthData: Array<{ month: string; skills: number }>;
+    goalCompletionData: Array<{ category: string; completed: number; total: number; rate: number }>;
+}
+
 export default function DashboardPage() {
     const router = useRouter();
     const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [userName, setUserName] = useState<string>('');
 
@@ -118,11 +136,114 @@ export default function DashboardPage() {
                 recentSkills,
                 recentGoals,
             });
+
+            // Process analytics data
+            setAnalytics(processAnalyticsData(skills, goals, projects, achievements));
         } catch (error) {
             console.error('Error loading dashboard:', error);
         } finally {
             setLoading(false);
         }
+    }
+
+    function processAnalyticsData(skills: any[], goals: any[], projects: any[], achievements: any[]): AnalyticsData {
+        // Skills Pie Chart Data
+        const skillsByCategory: { [key: string]: number } = {};
+        skills.forEach(skill => {
+            const category = skill.category || 'Other';
+            skillsByCategory[category] = (skillsByCategory[category] || 0) + 1;
+        });
+        const skillsPieData = Object.entries(skillsByCategory).map(([name, value]) => ({ name, value }));
+
+        // Skill Proficiency Data
+        const proficiencyByCategory: { [key: string]: { beginner: number; intermediate: number; advanced: number; expert: number } } = {};
+        skills.forEach(skill => {
+            const category = skill.category || 'Other';
+            if (!proficiencyByCategory[category]) {
+                proficiencyByCategory[category] = { beginner: 0, intermediate: 0, advanced: 0, expert: 0 };
+            }
+            const level = skill.proficiency_level || 'beginner';
+            proficiencyByCategory[category][level as keyof typeof proficiencyByCategory[string]]++;
+        });
+        const skillProficiencyData = Object.entries(proficiencyByCategory).map(([category, levels]) => ({
+            category,
+            ...levels,
+        }));
+
+        // Goal Timeline Data (last 6 months)
+        const now = new Date();
+        const goalTimelineData = [];
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+            const monthGoals = goals.filter(g => {
+                const createdDate = new Date(g.created_at);
+                return createdDate.getMonth() === date.getMonth() && createdDate.getFullYear() === date.getFullYear();
+            });
+            const completed = monthGoals.filter(g => g.status === 'completed').length;
+            const active = monthGoals.filter(g => g.status === 'active').length;
+            goalTimelineData.push({
+                month: monthName,
+                completed,
+                active,
+                total: completed + active,
+            });
+        }
+
+        // Activity Heatmap Data (last 30 days)
+        const activityHeatmapData = [];
+        for (let i = 29; i >= 0; i--) {
+            const date = new Date(now);
+            date.setDate(date.getDate() - i);
+            const dayStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+            // Count activities for this day (skills, goals, projects, achievements added)
+            const activities = [
+                ...skills.filter(s => new Date(s.created_at).toDateString() === date.toDateString()),
+                ...goals.filter(g => new Date(g.created_at).toDateString() === date.toDateString()),
+                ...projects.filter(p => new Date(p.created_at).toDateString() === date.toDateString()),
+                ...achievements.filter(a => new Date(a.created_at).toDateString() === date.toDateString()),
+            ].length;
+
+            activityHeatmapData.push({ day: dayStr, activities });
+        }
+
+        // Skill Growth Trend (last 6 months)
+        const skillGrowthData = [];
+        for (let i = 5; i >= 0; i--) {
+            const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+            const skillsUpToMonth = skills.filter(s => new Date(s.created_at) <= date).length;
+            skillGrowthData.push({ month: monthName, skills: skillsUpToMonth });
+        }
+
+        // Goal Completion Rate by Category
+        const goalCompletionByCategory: { [key: string]: { completed: number; total: number } } = {};
+        goals.forEach(goal => {
+            const category = goal.category || 'Other';
+            if (!goalCompletionByCategory[category]) {
+                goalCompletionByCategory[category] = { completed: 0, total: 0 };
+            }
+            goalCompletionByCategory[category].total++;
+            if (goal.status === 'completed') {
+                goalCompletionByCategory[category].completed++;
+            }
+        });
+        const goalCompletionData = Object.entries(goalCompletionByCategory).map(([category, data]) => ({
+            category,
+            completed: data.completed,
+            total: data.total,
+            rate: data.total > 0 ? (data.completed / data.total) * 100 : 0,
+        }));
+
+        return {
+            skillsPieData,
+            skillProficiencyData,
+            goalTimelineData,
+            activityHeatmapData,
+            skillGrowthData,
+            goalCompletionData,
+        };
     }
 
     if (loading) {
@@ -364,6 +485,41 @@ export default function DashboardPage() {
                         </Card>
                     )}
                 </div>
+
+                {/* Advanced Analytics Section */}
+                {stats.totalSkills > 0 && analytics && (
+                    <>
+                        <div className="mt-12 mb-6">
+                            <h2 className="text-xl font-semibold text-black">Advanced Analytics</h2>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Detailed insights into your career development
+                            </p>
+                        </div>
+
+                        {/* Charts Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            <SkillsPieChart data={analytics.skillsPieData} />
+                            <SkillGrowthTrend data={analytics.skillGrowthData} />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-8 mb-8">
+                            <SkillProficiencyChart data={analytics.skillProficiencyData} />
+                        </div>
+
+                        {stats.totalGoals > 0 && (
+                            <>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                                    <GoalProgressTimeline data={analytics.goalTimelineData} />
+                                    <GoalCompletionRate data={analytics.goalCompletionData} />
+                                </div>
+                            </>
+                        )}
+
+                        <div className="grid grid-cols-1 gap-8 mb-8">
+                            <ActivityHeatmap data={analytics.activityHeatmapData} />
+                        </div>
+                    </>
+                )}
 
                 {/* Empty State */}
                 {stats.totalSkills === 0 && stats.totalGoals === 0 && stats.totalProjects === 0 && (
