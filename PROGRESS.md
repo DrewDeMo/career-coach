@@ -79,51 +79,69 @@
 - ✅ **Delete Confirmation** - Safe deletion with confirmation dialog
 - ✅ **Context Preservation** - Full conversation history sent to GPT for context-aware responses
 
+### 10. Streaming Responses (COMPLETED)
+- ✅ **Real-time Token Streaming** - OpenAI streaming API integration with Server-Sent Events (SSE)
+- ✅ **Word-by-Word Display** - AI responses appear token-by-token as they're generated
+- ✅ **Smooth UX** - Natural, ChatGPT-like response animation
+- ✅ **Error Handling** - Comprehensive error handling for streaming failures
+- ✅ **Database Persistence** - Messages saved after streaming completes
+- ✅ **Fallback Support** - Non-streaming mode available if needed
+- ✅ **Loading States** - Animated typing indicator transitions to streaming text
+
+### 11. Entity Extraction & Auto-Update (COMPLETED)
+- ✅ **GPT-4o-mini Entity Extraction** - Automatic detection of new information from conversations
+- ✅ **Multi-Entity Support** - Extracts skills, goals, projects, challenges, achievements, profile updates
+- ✅ **Context-Aware** - Avoids re-extracting existing information
+- ✅ **Suggestions Database** - New `suggestions` table with RLS policies
+- ✅ **Suggestions Panel UI** - Clean, card-based interface for reviewing suggestions
+- ✅ **Accept/Reject Actions** - User can approve or dismiss each suggestion
+- ✅ **Automatic Database Updates** - Accepted suggestions saved to appropriate tables
+- ✅ **Real-time Refresh** - Suggestions panel updates after each conversation
+- ✅ **API Endpoints** - GET `/api/suggestions`, PATCH/DELETE `/api/suggestions/[id]`
+- ✅ **Error Handling** - Graceful fallbacks if extraction fails
+- ✅ **Validation & Bug Fixes** - Fixed database constraint errors with proper entity type validation
+
+### 12. Profile Management (COMPLETED)
+- ✅ **Profile Page** - Comprehensive view of all user career data at `/profile`
+- ✅ **Career Information Display** - Shows role, company, department, experience, industry, responsibilities
+- ✅ **Skills Management** - View all skills with proficiency levels, category, and date added
+- ✅ **Goals Management** - View all goals with status, category, and target dates
+- ✅ **Projects Management** - View all projects with details, technologies, and dates
+- ✅ **Edit Mode** - Toggle between view and edit modes for career profile
+- ✅ **Inline Editing** - Edit career information directly in the profile page
+- ✅ **Save/Cancel Actions** - Save changes or revert to original values
+- ✅ **Delete Functionality** - Remove skills, goals, and projects individually
+- ✅ **Navigation** - Profile button in chat header for easy access
+- ✅ **Date Sorting** - Skills sorted by creation date (newest first)
+- ✅ **Responsive Design** - Clean, minimal UI consistent with app design system
+- ✅ **Column Name Compatibility** - Handles both `name` and `skill_name` columns for skills
+
+
 ## 📋 Remaining Tasks
 
 ### High Priority
+None - Core functionality complete!
 
 ### Medium Priority
-2. **Streaming Responses** - Real-time token streaming for better UX
-   - Implement SSE or streaming API
-   - Show tokens as they arrive
-   - Smoother user experience
-   
-3. **Entity Extraction** - Detect new information from conversations
-   - Parse GPT responses for new data
-   - Identify skills, goals, challenges
-   - Extract project information
-   
-4. **Auto-Update Logic** - Update database from chat insights
-   - Confirm updates with user
-   - Update career_profiles, skills, goals
-   - Track conversation insights
-   
-5. **Profile Management** - View/edit career data
-   - Profile page with all user data
-   - Edit forms for each section
-   - Delete functionality
-   
-6. **Dashboard** - Career overview and statistics
+1. **Dashboard** - Career overview and statistics
    - Progress tracking
    - Goal completion
    - Skill development timeline
+   - Visual analytics
 
 ### Lower Priority
-7. **Search & Filter** - For projects and coworkers
-8. **Data Export** - Export career data
-9. **Rate Limiting** - Prevent API abuse
-10. **Testing** - Unit and integration tests
-11. **Deployment** - Vercel deployment
-12. **Documentation** - API and schema docs
+2. **Search & Filter** - For projects and coworkers
+3. **Data Export** - Export career data
+4. **Rate Limiting** - Prevent API abuse
+5. **Testing** - Unit and integration tests
+6. **Deployment** - Vercel deployment
+7. **Documentation** - API and schema docs
 
 ## 🎯 Next Steps
 
-1. **Conversation History** - Add ability to view and manage past conversations
-2. **Streaming Responses** - Implement real-time token streaming
-3. **Profile Management** - Build profile editing interface
-4. **Dashboard** - Create career insights and progress tracking
-5. **Entity Extraction** - Auto-detect and suggest profile updates from conversations
+1. **Dashboard** - Create career insights and progress tracking
+2. **Advanced Entity Extraction** - Fine-tune extraction accuracy
+3. **Analytics** - Add visual progress tracking and insights
 
 ## 📊 Architecture Overview
 
@@ -171,6 +189,7 @@ Data Flow:
 - All tables have automatic `updated_at` triggers
 - JSONB fields for flexible data storage (responsibilities, technologies, etc.)
 - RLS policies ensure users can only access their own data
+- **Suggestions table** - Stores extracted entities awaiting user confirmation
 
 ### Middleware
 - Handles auth redirects automatically
@@ -210,6 +229,10 @@ Data Flow:
 - Temperature: 0.7 for balanced creativity and consistency
 - Max tokens: 1000 per response
 - All conversations saved with token usage tracking
+- **Streaming responses** - Real-time token-by-token display using OpenAI streaming API
+- Server-Sent Events (SSE) for smooth, ChatGPT-like UX
+- **Entity extraction** - Automatic detection of new information after each conversation
+- Temperature: 0.3 for extraction (more consistent results)
 
 ## 🚀 Current Status
 
@@ -219,24 +242,30 @@ Data Flow:
 3. Chat with AI career coach with personalized, context-aware responses
 4. View, manage, and switch between multiple conversations
 5. Search through conversation history
-6. All conversations are saved to the database with full message history
+6. Experience real-time streaming responses (word-by-word AI replies)
+7. All conversations are saved to the database with full message history
+8. **Automatic entity extraction** - System detects and suggests new skills, goals, projects, etc.
+9. **Review and accept suggestions** - User-friendly panel to approve or dismiss updates
 
 **What's Working:**
 - ✅ Full authentication flow
 - ✅ Complete onboarding wizard
 - ✅ AI chat with GPT-4o-mini
 - ✅ Context-aware responses based on user profile
+- ✅ **Real-time streaming responses** - ChatGPT-like token-by-token display
 - ✅ Message persistence with proper JSONB structure
 - ✅ Conversation history with sidebar navigation
 - ✅ Search and filter conversations
 - ✅ Create, load, switch, and delete conversations
+- ✅ **Entity extraction system** - Automatic detection of skills, goals, projects, challenges, achievements
+- ✅ **Suggestions workflow** - Review, accept, or dismiss extracted information
+- ✅ **Profile management** - View and edit all career data with delete functionality
 - ✅ Clean, minimal UI with responsive design
 
 **Next Priorities:**
-- Streaming responses for better UX
-- Profile editing interface
-- Dashboard with career insights
-- Entity extraction from conversations
+- Dashboard with career insights and analytics
+- Visual progress tracking
+- Advanced entity extraction improvements
 
 **Running on**: `localhost:3000`
 **Database**: Supabase (configured and connected)

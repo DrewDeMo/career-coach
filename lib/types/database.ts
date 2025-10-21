@@ -344,6 +344,41 @@ export interface Database {
                     updated_at?: string
                 }
             }
+            suggestions: {
+                Row: {
+                    id: string
+                    user_id: string
+                    conversation_id: string | null
+                    entity_type: 'skill' | 'skill_update' | 'goal' | 'project' | 'challenge' | 'achievement' | 'profile_update'
+                    entity_data: Json
+                    context: string
+                    status: 'pending' | 'accepted' | 'rejected'
+                    created_at: string
+                    updated_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    conversation_id?: string | null
+                    entity_type: 'skill' | 'skill_update' | 'goal' | 'project' | 'challenge' | 'achievement' | 'profile_update'
+                    entity_data: Json
+                    context: string
+                    status?: 'pending' | 'accepted' | 'rejected'
+                    created_at?: string
+                    updated_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    conversation_id?: string | null
+                    entity_type?: 'skill' | 'skill_update' | 'goal' | 'project' | 'challenge' | 'achievement' | 'profile_update'
+                    entity_data?: Json
+                    context?: string
+                    status?: 'pending' | 'accepted' | 'rejected'
+                    created_at?: string
+                    updated_at?: string
+                }
+            }
         }
     }
 }

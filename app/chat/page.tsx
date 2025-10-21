@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useRouter } from 'next/navigation'
 import ConversationSidebar from '@/components/ConversationSidebar'
+import SuggestionsPanel from '@/components/SuggestionsPanel'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -36,6 +37,7 @@ export default function ChatPage() {
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
     const [conversationsLoading, setConversationsLoading] = useState(true)
+    const [suggestionsKey, setSuggestionsKey] = useState(0)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -214,6 +216,9 @@ export default function ChatPage() {
                                     // Reload conversations to update the list
                                     await loadConversations()
 
+                                    // Refresh suggestions panel
+                                    setSuggestionsKey(prev => prev + 1)
+
                                     // If this was a new conversation, set the current conversation ID
                                     if (!currentConversationId) {
                                         const convResponse = await fetch('/api/conversations')
@@ -300,13 +305,22 @@ export default function ChatPage() {
                             <h1 className="text-xl font-semibold text-black">Career Coach</h1>
                             <p className="text-sm text-gray-600">Your AI career development assistant</p>
                         </div>
-                        <Button
-                            onClick={handleSignOut}
-                            variant="outline"
-                            className="text-sm"
-                        >
-                            Sign Out
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => router.push('/profile')}
+                                variant="outline"
+                                className="text-sm"
+                            >
+                                Profile
+                            </Button>
+                            <Button
+                                onClick={handleSignOut}
+                                variant="outline"
+                                className="text-sm"
+                            >
+                                Sign Out
+                            </Button>
+                        </div>
                     </div>
                 </header>
 
@@ -364,6 +378,14 @@ export default function ChatPage() {
                         )}
                     </div>
                 </div>
+
+                {/* Suggestions Panel */}
+                {currentConversationId && (
+                    <SuggestionsPanel
+                        key={suggestionsKey}
+                        conversationId={currentConversationId}
+                    />
+                )}
 
                 {/* Input */}
                 <div className="border-t border-gray-200 bg-white">

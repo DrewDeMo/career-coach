@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
+import { extractEntitiesFromConversation, hasExtractedEntities } from '@/lib/entity-extraction'
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
@@ -138,6 +139,107 @@ function buildSystemPrompt(context: UserContext): string {
     return prompt
 }
 
+async function saveSuggestions(
+    supabase: any,
+    userId: string,
+    conversationId: string,
+    entities: any
+) {
+    const suggestions = []
+
+    // Valid entity types according to database constraint
+    const validEntityTypes = ['skill', 'skill_update', 'goal', 'project', 'challenge', 'achievement', 'profile_update']
+
+    // Helper function to validate and create suggestion
+    const createSuggestion = (entityType: string, entityData: any, context: string) => {
+        if (!validEntityTypes.includes(entityType)) {
+            console.warn(`Invalid entity type: ${entityType}`)
+            return null
+        }
+        if (!context || typeof context !== 'string') {
+            console.warn(`Missing or invalid context for entity type: ${entityType}`)
+            return null
+        }
+        return {
+            user_id: userId,
+            conversation_id: conversationId,
+            entity_type: entityType,
+            entity_data: entityData,
+            context: context
+        }
+    }
+
+    // Add new skills
+    if (Array.isArray(entities.skills)) {
+        for (const skill of entities.skills) {
+            const suggestion = createSuggestion('skill', skill, skill.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add skill updates
+    if (Array.isArray(entities.skillUpdates)) {
+        for (const skillUpdate of entities.skillUpdates) {
+            const suggestion = createSuggestion('skill_update', skillUpdate, skillUpdate.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add goals
+    if (Array.isArray(entities.goals)) {
+        for (const goal of entities.goals) {
+            const suggestion = createSuggestion('goal', goal, goal.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add projects
+    if (Array.isArray(entities.projects)) {
+        for (const project of entities.projects) {
+            const suggestion = createSuggestion('project', project, project.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add challenges
+    if (Array.isArray(entities.challenges)) {
+        for (const challenge of entities.challenges) {
+            const suggestion = createSuggestion('challenge', challenge, challenge.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add achievements
+    if (Array.isArray(entities.achievements)) {
+        for (const achievement of entities.achievements) {
+            const suggestion = createSuggestion('achievement', achievement, achievement.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add profile updates
+    if (Array.isArray(entities.profileUpdates)) {
+        for (const update of entities.profileUpdates) {
+            const suggestion = createSuggestion('profile_update', update, update.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    if (suggestions.length > 0) {
+        console.log(`Attempting to save ${suggestions.length} suggestions`)
+        const { error } = await supabase.from('suggestions').insert(suggestions)
+        if (error) {
+            console.error('Error saving suggestions:', error)
+            // Log the first failed suggestion for debugging
+            if (suggestions.length > 0) {
+                console.error('First suggestion that failed:', JSON.stringify(suggestions[0], null, 2))
+            }
+        } else {
+            console.log(`Successfully saved ${suggestions.length} suggestions`)
+        }
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         const supabase = await createClient()
@@ -228,6 +330,19 @@ export async function POST(request: NextRequest) {
                             timestamp: new Date().toISOString()
                         }
 
+                        // Extract entities from the conversation
+                        let extractedEntities = null
+                        try {
+                            extractedEntities = await extractEntitiesFromConversation(
+                                message,
+                                fullContent,
+                                context
+                            )
+                        } catch (extractError) {
+                            console.error('Entity extraction error:', extractError)
+                            // Continue even if extraction fails
+                        }
+
                         // Update or create conversation
                         try {
                             if (conversationId) {
@@ -268,18 +383,32 @@ export async function POST(request: NextRequest) {
                                         console.error('Error updating conversation:', updateError)
                                         throw updateError
                                     }
+
+                                    // Save extracted entities as suggestions if any were found
+                                    if (extractedEntities && hasExtractedEntities(extractedEntities)) {
+                                        await saveSuggestions(supabase, user.id, conversationId, extractedEntities)
+                                    }
                                 }
                             } else {
                                 const title = message.substring(0, 50) + (message.length > 50 ? '...' : '')
-                                const { error: insertError } = await supabase.from('conversations').insert({
-                                    user_id: user.id,
-                                    title,
-                                    messages: [userMsg, assistantMsg]
-                                })
+                                const { data: newConv, error: insertError } = await supabase
+                                    .from('conversations')
+                                    .insert({
+                                        user_id: user.id,
+                                        title,
+                                        messages: [userMsg, assistantMsg]
+                                    })
+                                    .select('id')
+                                    .single()
 
                                 if (insertError) {
                                     console.error('Error creating conversation:', insertError)
                                     throw insertError
+                                }
+
+                                // Save extracted entities as suggestions if any were found
+                                if (newConv && extractedEntities && hasExtractedEntities(extractedEntities)) {
+                                    await saveSuggestions(supabase, user.id, newConv.id, extractedEntities)
                                 }
                             }
                         } catch (dbError) {
