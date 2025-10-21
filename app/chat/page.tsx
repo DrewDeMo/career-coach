@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useRouter } from 'next/navigation'
 import ConversationSidebar from '@/components/ConversationSidebar'
 import SuggestionsPanel from '@/components/SuggestionsPanel'
+import { LayoutDashboard, User, LogOut, Send, MessageSquare, Loader2 } from 'lucide-react'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -299,32 +300,40 @@ export default function ChatPage() {
             {/* Main Chat Area */}
             <div className="flex-1 flex flex-col">
                 {/* Header */}
-                <header className="border-b border-gray-200 bg-white">
+                <header className="border-b border-gray-200 bg-white shadow-sm">
                     <div className="px-6 py-4 flex items-center justify-between">
-                        <div>
-                            <h1 className="text-xl font-semibold text-black">Career Coach</h1>
-                            <p className="text-sm text-gray-600">Your AI career development assistant</p>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
+                                <MessageSquare className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-semibold text-black">Career Coach</h1>
+                                <p className="text-sm text-gray-600">Your AI career development assistant</p>
+                            </div>
                         </div>
                         <div className="flex gap-2">
                             <Button
                                 onClick={() => router.push('/dashboard')}
                                 variant="outline"
-                                className="text-sm"
+                                className="text-sm gap-2"
                             >
+                                <LayoutDashboard className="w-4 h-4" />
                                 Dashboard
                             </Button>
                             <Button
                                 onClick={() => router.push('/profile')}
                                 variant="outline"
-                                className="text-sm"
+                                className="text-sm gap-2"
                             >
+                                <User className="w-4 h-4" />
                                 Profile
                             </Button>
                             <Button
                                 onClick={handleSignOut}
                                 variant="outline"
-                                className="text-sm"
+                                className="text-sm gap-2"
                             >
+                                <LogOut className="w-4 h-4" />
                                 Sign Out
                             </Button>
                         </div>
@@ -335,18 +344,46 @@ export default function ChatPage() {
                 <div className="flex-1 overflow-y-auto">
                     <div className="max-w-4xl mx-auto px-6 py-8">
                         {messages.length === 0 ? (
-                            <div className="text-center py-12">
-                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                                    </svg>
+                            <div className="text-center py-16">
+                                <div className="w-20 h-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                    <MessageSquare className="w-10 h-10 text-gray-400" />
                                 </div>
-                                <h2 className="text-lg font-semibold text-black mb-2">
+                                <h2 className="text-2xl font-semibold text-black mb-3">
                                     {currentConversationId ? 'Conversation loaded' : 'Start a new conversation'}
                                 </h2>
-                                <p className="text-sm text-gray-600 max-w-md mx-auto">
+                                <p className="text-sm text-gray-600 max-w-md mx-auto mb-8">
                                     Ask me anything about your career, skills, goals, or professional development.
                                 </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                                    <button
+                                        onClick={() => setInput("How can I improve my leadership skills?")}
+                                        className="p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all"
+                                    >
+                                        <p className="text-sm font-medium text-black mb-1">💡 Leadership Skills</p>
+                                        <p className="text-xs text-gray-500">Get advice on developing leadership abilities</p>
+                                    </button>
+                                    <button
+                                        onClick={() => setInput("What should I focus on for career growth?")}
+                                        className="p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all"
+                                    >
+                                        <p className="text-sm font-medium text-black mb-1">🚀 Career Growth</p>
+                                        <p className="text-xs text-gray-500">Explore opportunities for advancement</p>
+                                    </button>
+                                    <button
+                                        onClick={() => setInput("Help me set SMART goals for this quarter")}
+                                        className="p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all"
+                                    >
+                                        <p className="text-sm font-medium text-black mb-1">🎯 Goal Setting</p>
+                                        <p className="text-xs text-gray-500">Create actionable career goals</p>
+                                    </button>
+                                    <button
+                                        onClick={() => setInput("How do I handle difficult workplace relationships?")}
+                                        className="p-4 text-left border border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all"
+                                    >
+                                        <p className="text-sm font-medium text-black mb-1">🤝 Relationships</p>
+                                        <p className="text-xs text-gray-500">Navigate professional relationships</p>
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-6">
@@ -371,12 +408,9 @@ export default function ChatPage() {
                                 ))}
                                 {loading && (
                                     <div className="flex justify-start">
-                                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                                            <div className="flex space-x-2">
-                                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                                            </div>
+                                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 flex items-center gap-2">
+                                            <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                                            <span className="text-sm text-gray-500">Thinking...</span>
                                         </div>
                                     </div>
                                 )}
@@ -410,8 +444,13 @@ export default function ChatPage() {
                             <Button
                                 type="submit"
                                 disabled={!input.trim() || loading}
-                                className="px-6"
+                                className="px-6 gap-2"
                             >
+                                {loading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Send className="w-4 h-4" />
+                                )}
                                 Send
                             </Button>
                         </form>

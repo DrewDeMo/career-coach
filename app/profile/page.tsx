@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { useRouter } from 'next/navigation'
+import { User, LayoutDashboard, MessageSquare, Users, Loader2, Edit, Save, X, Trash2 } from 'lucide-react'
 
 interface CareerProfile {
     role_title: string
@@ -187,7 +188,8 @@ export default function ProfilePage() {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
-                    <div className="text-lg">Loading profile...</div>
+                    <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-3" />
+                    <div className="text-sm text-gray-500">Loading profile...</div>
                 </div>
             </div>
         )
@@ -196,19 +198,44 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-white">
             {/* Header */}
-            <div className="border-b border-gray-200">
+            <div className="border-b border-gray-200 bg-white shadow-sm">
                 <div className="max-w-6xl mx-auto px-6 py-6">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-semibold">Career Profile</h1>
-                            <p className="text-gray-600 mt-1">Manage your career information</p>
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-gray-700 to-gray-900 rounded-xl flex items-center justify-center shadow-lg">
+                                <User className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-semibold text-black">Career Profile</h1>
+                                <p className="text-sm text-gray-500 mt-1">Manage your career information</p>
+                            </div>
                         </div>
-                        <Button
-                            onClick={() => router.push('/chat')}
-                            variant="outline"
-                        >
-                            Back to Chat
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => router.push('/dashboard')}
+                                variant="outline"
+                                className="text-sm gap-2"
+                            >
+                                <LayoutDashboard className="w-4 h-4" />
+                                Dashboard
+                            </Button>
+                            <Button
+                                onClick={() => router.push('/chat')}
+                                variant="outline"
+                                className="text-sm gap-2"
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                                Chat
+                            </Button>
+                            <Button
+                                onClick={() => router.push('/coworkers')}
+                                variant="outline"
+                                className="text-sm gap-2"
+                            >
+                                <Users className="w-4 h-4" />
+                                Co-workers
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -220,12 +247,14 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-semibold">Career Information</h2>
                         {!editMode ? (
-                            <Button onClick={() => setEditMode(true)}>
+                            <Button onClick={() => setEditMode(true)} className="gap-2">
+                                <Edit className="w-4 h-4" />
                                 Edit Profile
                             </Button>
                         ) : (
                             <div className="flex gap-2">
-                                <Button onClick={handleSaveProfile}>
+                                <Button onClick={handleSaveProfile} className="gap-2">
+                                    <Save className="w-4 h-4" />
                                     Save Changes
                                 </Button>
                                 <Button
@@ -234,7 +263,9 @@ export default function ProfilePage() {
                                         setEditedProfile(profile)
                                         setEditMode(false)
                                     }}
+                                    className="gap-2"
                                 >
+                                    <X className="w-4 h-4" />
                                     Cancel
                                 </Button>
                             </div>
@@ -378,7 +409,9 @@ export default function ProfilePage() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => handleDeleteSkill(skill.id)}
+                                            className="gap-2"
                                         >
+                                            <Trash2 className="w-4 h-4" />
                                             Delete
                                         </Button>
                                     </div>
@@ -417,7 +450,9 @@ export default function ProfilePage() {
                                             variant="outline"
                                             size="sm"
                                             onClick={() => handleDeleteGoal(goal.id)}
+                                            className="gap-2"
                                         >
+                                            <Trash2 className="w-4 h-4" />
                                             Delete
                                         </Button>
                                     </div>
@@ -459,7 +494,9 @@ export default function ProfilePage() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleDeleteProject(project.id)}
+                                        className="gap-2"
                                     >
+                                        <Trash2 className="w-4 h-4" />
                                         Delete
                                     </Button>
                                 </div>

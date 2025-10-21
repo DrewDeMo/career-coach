@@ -11,6 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+    Users,
+    Search,
+    Plus,
+    Filter,
+    TrendingUp,
+    TrendingDown,
+    Minus,
+    Loader2,
+    UserPlus,
+    Building2,
+    Briefcase,
+    LayoutDashboard,
+    MessageSquare,
+    User
+} from 'lucide-react'
 
 interface Coworker {
     id: string
@@ -142,31 +158,190 @@ export default function CoworkersPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-white p-8">
-                <div className="max-w-7xl mx-auto">
-                    <p className="text-gray-500">Loading coworkers...</p>
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">Loading coworkers...</p>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-white p-8">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-light mb-2">Co-workers</h1>
-                    <p className="text-gray-600">Manage your professional relationships</p>
+        <div className="min-h-screen bg-white">
+            {/* Header */}
+            <div className="border-b border-gray-200 bg-white shadow-sm">
+                <div className="max-w-7xl mx-auto px-6 py-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                                <Users className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-semibold text-black">Co-workers</h1>
+                                <p className="text-sm text-gray-500 mt-1">Manage your professional relationships</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => router.push('/dashboard')}
+                                variant="outline"
+                                className="text-sm gap-2"
+                            >
+                                <LayoutDashboard className="w-4 h-4" />
+                                Dashboard
+                            </Button>
+                            <Button
+                                onClick={() => router.push('/chat')}
+                                variant="outline"
+                                className="text-sm gap-2"
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                                Chat
+                            </Button>
+                            <Button
+                                onClick={() => router.push('/profile')}
+                                variant="outline"
+                                className="text-sm gap-2"
+                            >
+                                <User className="w-4 h-4" />
+                                Profile
+                            </Button>
+                            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button className="gap-2">
+                                        <UserPlus className="w-4 h-4" />
+                                        Add Co-worker
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                                    <DialogHeader>
+                                        <DialogTitle>Add New Co-worker</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4 py-4">
+                                        <div>
+                                            <Label htmlFor="name">Name *</Label>
+                                            <Input
+                                                id="name"
+                                                value={newCoworker.name}
+                                                onChange={(e) => setNewCoworker({ ...newCoworker, name: e.target.value })}
+                                                placeholder="John Doe"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="role">Role</Label>
+                                            <Input
+                                                id="role"
+                                                value={newCoworker.role}
+                                                onChange={(e) => setNewCoworker({ ...newCoworker, role: e.target.value })}
+                                                placeholder="Senior Developer"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="department">Department</Label>
+                                            <Input
+                                                id="department"
+                                                value={newCoworker.department}
+                                                onChange={(e) => setNewCoworker({ ...newCoworker, department: e.target.value })}
+                                                placeholder="Engineering"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="seniority">Seniority Level</Label>
+                                            <Select
+                                                value={newCoworker.seniority_level}
+                                                onValueChange={(value) => setNewCoworker({ ...newCoworker, seniority_level: value })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select level" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="junior">Junior</SelectItem>
+                                                    <SelectItem value="mid">Mid</SelectItem>
+                                                    <SelectItem value="senior">Senior</SelectItem>
+                                                    <SelectItem value="lead">Lead</SelectItem>
+                                                    <SelectItem value="manager">Manager</SelectItem>
+                                                    <SelectItem value="director">Director</SelectItem>
+                                                    <SelectItem value="vp">VP</SelectItem>
+                                                    <SelectItem value="executive">Executive</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="influence">Influence Score (1-10): {newCoworker.influence_score}</Label>
+                                            <input
+                                                type="range"
+                                                id="influence"
+                                                min="1"
+                                                max="10"
+                                                value={newCoworker.influence_score}
+                                                onChange={(e) => setNewCoworker({ ...newCoworker, influence_score: parseInt(e.target.value) })}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="relationship">Relationship Quality (1-10): {newCoworker.relationship_quality}</Label>
+                                            <input
+                                                type="range"
+                                                id="relationship"
+                                                min="1"
+                                                max="10"
+                                                value={newCoworker.relationship_quality}
+                                                onChange={(e) => setNewCoworker({ ...newCoworker, relationship_quality: parseInt(e.target.value) })}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="trust">Trust Level (1-10): {newCoworker.trust_level}</Label>
+                                            <input
+                                                type="range"
+                                                id="trust"
+                                                min="1"
+                                                max="10"
+                                                value={newCoworker.trust_level}
+                                                onChange={(e) => setNewCoworker({ ...newCoworker, trust_level: parseInt(e.target.value) })}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="impact">Career Impact</Label>
+                                            <Select
+                                                value={newCoworker.career_impact}
+                                                onValueChange={(value: 'positive' | 'negative' | 'neutral') => setNewCoworker({ ...newCoworker, career_impact: value })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="positive">Positive</SelectItem>
+                                                    <SelectItem value="neutral">Neutral</SelectItem>
+                                                    <SelectItem value="negative">Negative</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <Button onClick={handleAddCoworker} className="w-full">
+                                            Add Co-worker
+                                        </Button>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
                 </div>
+            </div>
 
+            <div className="max-w-7xl mx-auto px-6 py-8">
                 {/* Filters and Search */}
-                <div className="mb-6 flex flex-col sm:flex-row gap-4">
-                    <Input
-                        placeholder="Search by name or role..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="flex-1"
-                    />
+                <div className="mb-6 flex flex-col sm:flex-row gap-3">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                            placeholder="Search by name or role..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9"
+                        />
+                    </div>
                     <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
                         <SelectTrigger className="w-full sm:w-48">
                             <SelectValue placeholder="Department" />
@@ -179,7 +354,8 @@ export default function CoworkersPage() {
                         </SelectContent>
                     </Select>
                     <Select value={impactFilter} onValueChange={setImpactFilter}>
-                        <SelectTrigger className="w-full sm:w-48">
+                        <SelectTrigger className="w-full sm:w-48 gap-2">
+                            <Filter className="w-4 h-4" />
                             <SelectValue placeholder="Impact" />
                         </SelectTrigger>
                         <SelectContent>
@@ -189,121 +365,6 @@ export default function CoworkersPage() {
                             <SelectItem value="negative">Negative</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button>Add Co-worker</Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle>Add New Co-worker</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                                <div>
-                                    <Label htmlFor="name">Name *</Label>
-                                    <Input
-                                        id="name"
-                                        value={newCoworker.name}
-                                        onChange={(e) => setNewCoworker({ ...newCoworker, name: e.target.value })}
-                                        placeholder="John Doe"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="role">Role</Label>
-                                    <Input
-                                        id="role"
-                                        value={newCoworker.role}
-                                        onChange={(e) => setNewCoworker({ ...newCoworker, role: e.target.value })}
-                                        placeholder="Senior Developer"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="department">Department</Label>
-                                    <Input
-                                        id="department"
-                                        value={newCoworker.department}
-                                        onChange={(e) => setNewCoworker({ ...newCoworker, department: e.target.value })}
-                                        placeholder="Engineering"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="seniority">Seniority Level</Label>
-                                    <Select
-                                        value={newCoworker.seniority_level}
-                                        onValueChange={(value) => setNewCoworker({ ...newCoworker, seniority_level: value })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select level" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="junior">Junior</SelectItem>
-                                            <SelectItem value="mid">Mid</SelectItem>
-                                            <SelectItem value="senior">Senior</SelectItem>
-                                            <SelectItem value="lead">Lead</SelectItem>
-                                            <SelectItem value="manager">Manager</SelectItem>
-                                            <SelectItem value="director">Director</SelectItem>
-                                            <SelectItem value="vp">VP</SelectItem>
-                                            <SelectItem value="executive">Executive</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div>
-                                    <Label htmlFor="influence">Influence Score (1-10): {newCoworker.influence_score}</Label>
-                                    <input
-                                        type="range"
-                                        id="influence"
-                                        min="1"
-                                        max="10"
-                                        value={newCoworker.influence_score}
-                                        onChange={(e) => setNewCoworker({ ...newCoworker, influence_score: parseInt(e.target.value) })}
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="relationship">Relationship Quality (1-10): {newCoworker.relationship_quality}</Label>
-                                    <input
-                                        type="range"
-                                        id="relationship"
-                                        min="1"
-                                        max="10"
-                                        value={newCoworker.relationship_quality}
-                                        onChange={(e) => setNewCoworker({ ...newCoworker, relationship_quality: parseInt(e.target.value) })}
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="trust">Trust Level (1-10): {newCoworker.trust_level}</Label>
-                                    <input
-                                        type="range"
-                                        id="trust"
-                                        min="1"
-                                        max="10"
-                                        value={newCoworker.trust_level}
-                                        onChange={(e) => setNewCoworker({ ...newCoworker, trust_level: parseInt(e.target.value) })}
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="impact">Career Impact</Label>
-                                    <Select
-                                        value={newCoworker.career_impact}
-                                        onValueChange={(value: 'positive' | 'negative' | 'neutral') => setNewCoworker({ ...newCoworker, career_impact: value })}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="positive">Positive</SelectItem>
-                                            <SelectItem value="neutral">Neutral</SelectItem>
-                                            <SelectItem value="negative">Negative</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Button onClick={handleAddCoworker} className="w-full">
-                                    Add Co-worker
-                                </Button>
-                            </div>
-                        </DialogContent>
-                    </Dialog>
                 </div>
 
                 {/* Coworkers Grid */}

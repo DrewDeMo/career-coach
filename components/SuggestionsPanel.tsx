@@ -3,6 +3,18 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import {
+    Sparkles,
+    BookOpen,
+    Target,
+    FolderKanban,
+    AlertCircle,
+    Award,
+    User,
+    Check,
+    X,
+    Loader2
+} from 'lucide-react'
 
 interface Suggestion {
     id: string
@@ -80,6 +92,33 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
         return labels[type] || type
     }
 
+    const getEntityIcon = (type: string) => {
+        const icons: Record<string, any> = {
+            skill: BookOpen,
+            skill_update: BookOpen,
+            goal: Target,
+            project: FolderKanban,
+            challenge: AlertCircle,
+            achievement: Award,
+            profile_update: User
+        }
+        const Icon = icons[type] || Sparkles
+        return <Icon className="w-4 h-4" />
+    }
+
+    const getEntityColor = (type: string) => {
+        const colors: Record<string, string> = {
+            skill: 'bg-blue-50 text-blue-700 border-blue-200',
+            skill_update: 'bg-blue-50 text-blue-700 border-blue-200',
+            goal: 'bg-green-50 text-green-700 border-green-200',
+            project: 'bg-purple-50 text-purple-700 border-purple-200',
+            challenge: 'bg-orange-50 text-orange-700 border-orange-200',
+            achievement: 'bg-amber-50 text-amber-700 border-amber-200',
+            profile_update: 'bg-gray-50 text-gray-700 border-gray-200'
+        }
+        return colors[type] || 'bg-gray-50 text-gray-700 border-gray-200'
+    }
+
     const getEntityTitle = (suggestion: Suggestion) => {
         const data = suggestion.entity_data
         switch (suggestion.entity_type) {
@@ -120,8 +159,11 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
 
     if (loading) {
         return (
-            <div className="p-4 text-center text-gray-500">
-                Loading suggestions...
+            <div className="border-t border-gray-200 bg-gradient-to-b from-blue-50/50 to-white p-6">
+                <div className="flex items-center justify-center gap-2 text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading suggestions...</span>
+                </div>
             </div>
         )
     }
