@@ -18,6 +18,7 @@ interface CareerProfile {
     years_experience: number
     industry: string
     responsibilities: string[]
+    current_salary?: number
 }
 
 interface Skill {
@@ -352,6 +353,28 @@ export default function ProfilePage() {
                                     />
                                 ) : (
                                     <div className="mt-1 text-gray-900">{profile.industry}</div>
+                                )}
+                            </div>
+
+                            <div>
+                                <Label>Current Salary</Label>
+                                {editMode ? (
+                                    <Input
+                                        type="number"
+                                        value={editedProfile?.current_salary || ''}
+                                        onChange={(e) => setEditedProfile({
+                                            ...editedProfile!,
+                                            current_salary: e.target.value ? parseFloat(e.target.value) : undefined
+                                        })}
+                                        className="mt-1"
+                                        placeholder="Annual salary"
+                                    />
+                                ) : (
+                                    <div className="mt-1 text-gray-900">
+                                        {profile.current_salary
+                                            ? `$${profile.current_salary.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                                            : 'Not specified'}
+                                    </div>
                                 )}
                             </div>
 

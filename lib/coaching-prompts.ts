@@ -64,6 +64,10 @@ function buildProfileSection(profile: any): string {
         section += `**Department**: ${profile.department}\n`
     }
 
+    if (profile.current_salary) {
+        section += `**Current Salary**: $${profile.current_salary.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} annually\n`
+    }
+
     return section + '\n'
 }
 
@@ -267,7 +271,7 @@ function buildCoachingFrameworks(intent: string): string {
 - Alignment with long-term goals
 - Skill development opportunities
 - Work-life balance impact
-- Financial considerations
+- Financial considerations (salary, benefits, equity)
 - Relationship and political implications
 - Personal values and fulfillment
 

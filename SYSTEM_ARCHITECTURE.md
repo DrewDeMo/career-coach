@@ -11,7 +11,7 @@ AI-powered career coaching platform with intelligent context retrieval, relation
 
 ### Core Tables
 - **users**: Auth user data
-- **career_profiles**: Role, company, experience, industry, responsibilities
+- **career_profiles**: Role, company, experience, industry, responsibilities, current_salary
 - **skills**: Name, category, proficiency_level, last_used
 - **goals**: Title, description, category, status, target_date, milestones
 - **projects**: Name, status, priority, description, technologies, dates, team_members, completion_percentage, budget, estimated_hours, category, tags, stakeholders, goals, risks, dependencies, deliverables, notes, archived
