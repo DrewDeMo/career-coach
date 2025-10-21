@@ -67,14 +67,21 @@
 - ✅ **Error Handling** - Graceful error messages and fallbacks
 - ✅ **Authentication** - Secure API route with user verification
 
+### 9. Conversation History (COMPLETED)
+- ✅ **Sidebar UI** - Clean conversation list with search functionality
+- ✅ **API Endpoints** - GET/POST/DELETE for conversations, GET for individual conversation
+- ✅ **Conversation Management** - Create, load, switch, and delete conversations
+- ✅ **Message Persistence** - All messages saved to conversations table with proper JSONB structure
+- ✅ **Auto-titling** - Conversations automatically titled from first message
+- ✅ **Search/Filter** - Real-time search through conversation titles
+- ✅ **Timestamps** - Smart date formatting (time, day, or date based on age)
+- ✅ **Message Preview** - Shows last message content in conversation list
+- ✅ **Delete Confirmation** - Safe deletion with confirmation dialog
+- ✅ **Context Preservation** - Full conversation history sent to GPT for context-aware responses
+
 ## 📋 Remaining Tasks
 
 ### High Priority
-1. **Conversation History** - Load and display past conversations
-   - Fetch conversation history from database
-   - Display in sidebar or separate view
-   - Allow switching between conversations
-   - Search/filter conversations
 
 ### Medium Priority
 2. **Streaming Responses** - Real-time token streaming for better UX
@@ -210,21 +217,26 @@ Data Flow:
 1. Sign up and authenticate
 2. Complete onboarding (profile, skills, goals)
 3. Chat with AI career coach with personalized, context-aware responses
-4. All conversations are saved to the database
+4. View, manage, and switch between multiple conversations
+5. Search through conversation history
+6. All conversations are saved to the database with full message history
 
 **What's Working:**
 - ✅ Full authentication flow
 - ✅ Complete onboarding wizard
 - ✅ AI chat with GPT-4o-mini
 - ✅ Context-aware responses based on user profile
-- ✅ Message persistence
-- ✅ Clean, minimal UI
+- ✅ Message persistence with proper JSONB structure
+- ✅ Conversation history with sidebar navigation
+- ✅ Search and filter conversations
+- ✅ Create, load, switch, and delete conversations
+- ✅ Clean, minimal UI with responsive design
 
 **Next Priorities:**
-- Conversation history management
+- Streaming responses for better UX
 - Profile editing interface
 - Dashboard with career insights
-- Streaming responses for better UX
+- Entity extraction from conversations
 
 **Running on**: `localhost:3000`
 **Database**: Supabase (configured and connected)

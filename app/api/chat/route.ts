@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const { message, conversationId, conversationHistory } = await request.json()
+        const { message, conversationId, conversationHistory, stream = true } = await request.json()
 
         if (!message || typeof message !== 'string') {
             return NextResponse.json(
@@ -184,7 +184,132 @@ export async function POST(request: NextRequest) {
         // Add current user message
         messages.push({ role: 'user', content: message })
 
-        // Call OpenAI API
+        // If streaming is requested, use streaming API
+        if (stream) {
+            const encoder = new TextEncoder()
+            const streamResponse = await openai.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages,
+                temperature: 0.7,
+                max_tokens: 1000,
+                stream: true
+            })
+
+            let fullContent = ''
+            let totalTokens = 0
+
+            const readableStream = new ReadableStream({
+                async start(controller) {
+                    try {
+                        for await (const chunk of streamResponse) {
+                            const content = chunk.choices[0]?.delta?.content || ''
+                            if (content) {
+                                fullContent += content
+                                // Send the chunk to the client
+                                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`))
+                            }
+                        }
+
+                        // Ensure we got some content
+                        if (!fullContent) {
+                            throw new Error('No content received from AI')
+                        }
+
+                        // After streaming is complete, save to database
+                        const userMsg = {
+                            role: 'user',
+                            content: message,
+                            timestamp: new Date().toISOString()
+                        }
+
+                        const assistantMsg = {
+                            role: 'assistant',
+                            content: fullContent,
+                            timestamp: new Date().toISOString()
+                        }
+
+                        // Update or create conversation
+                        try {
+                            if (conversationId) {
+                                const { data: existingConv, error: fetchError } = await supabase
+                                    .from('conversations')
+                                    .select('messages, title')
+                                    .eq('id', conversationId)
+                                    .eq('user_id', user.id)
+                                    .single()
+
+                                if (fetchError) {
+                                    console.error('Error fetching conversation:', fetchError)
+                                    throw fetchError
+                                }
+
+                                if (existingConv) {
+                                    const updatedMessages = [
+                                        ...(Array.isArray(existingConv.messages) ? existingConv.messages : []),
+                                        userMsg,
+                                        assistantMsg
+                                    ]
+
+                                    let title = existingConv.title
+                                    if (!title && updatedMessages.length === 2) {
+                                        title = message.substring(0, 50) + (message.length > 50 ? '...' : '')
+                                    }
+
+                                    const { error: updateError } = await supabase
+                                        .from('conversations')
+                                        .update({
+                                            messages: updatedMessages,
+                                            title,
+                                            updated_at: new Date().toISOString()
+                                        })
+                                        .eq('id', conversationId)
+
+                                    if (updateError) {
+                                        console.error('Error updating conversation:', updateError)
+                                        throw updateError
+                                    }
+                                }
+                            } else {
+                                const title = message.substring(0, 50) + (message.length > 50 ? '...' : '')
+                                const { error: insertError } = await supabase.from('conversations').insert({
+                                    user_id: user.id,
+                                    title,
+                                    messages: [userMsg, assistantMsg]
+                                })
+
+                                if (insertError) {
+                                    console.error('Error creating conversation:', insertError)
+                                    throw insertError
+                                }
+                            }
+                        } catch (dbError) {
+                            console.error('Database error during streaming:', dbError)
+                            // Still send completion but log the error
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ warning: 'Message saved locally but database sync failed' })}\n\n`))
+                        }
+
+                        // Send completion signal
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, tokensUsed: totalTokens })}\n\n`))
+                        controller.close()
+                    } catch (error) {
+                        console.error('Streaming error:', error)
+                        const errorMessage = error instanceof Error ? error.message : 'Streaming failed'
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`))
+                        controller.close()
+                    }
+                }
+            })
+
+            return new Response(readableStream, {
+                headers: {
+                    'Content-Type': 'text/event-stream',
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive'
+                }
+            })
+        }
+
+        // Non-streaming fallback (original implementation)
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages,
@@ -194,7 +319,6 @@ export async function POST(request: NextRequest) {
 
         const assistantMessage = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
 
-        // Create new message objects
         const userMsg = {
             role: 'user',
             content: message,
@@ -207,9 +331,7 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString()
         }
 
-        // Update or create conversation
         if (conversationId) {
-            // Fetch existing conversation
             const { data: existingConv } = await supabase
                 .from('conversations')
                 .select('messages, title')
@@ -224,7 +346,6 @@ export async function POST(request: NextRequest) {
                     assistantMsg
                 ]
 
-                // Generate title from first message if not set
                 let title = existingConv.title
                 if (!title && updatedMessages.length === 2) {
                     title = message.substring(0, 50) + (message.length > 50 ? '...' : '')
@@ -240,9 +361,7 @@ export async function POST(request: NextRequest) {
                     .eq('id', conversationId)
             }
         } else {
-            // Create new conversation
             const title = message.substring(0, 50) + (message.length > 50 ? '...' : '')
-
             await supabase.from('conversations').insert({
                 user_id: user.id,
                 title,

@@ -137,6 +137,15 @@ export default function ChatPage() {
         setInput('')
         setLoading(true)
 
+        // Create a placeholder for the streaming assistant message
+        const assistantMessageIndex = messages.length + 1
+        const assistantMessage: Message = {
+            role: 'assistant',
+            content: '',
+            timestamp: new Date().toISOString()
+        }
+        setMessages(prev => [...prev, assistantMessage])
+
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -144,46 +153,111 @@ export default function ChatPage() {
                 body: JSON.stringify({
                     message: userMessage.content,
                     conversationId: currentConversationId,
-                    conversationHistory: messages
+                    conversationHistory: messages,
+                    stream: true
                 })
             })
 
-            if (!response.ok) throw new Error('Failed to get response')
-
-            const data = await response.json()
-
-            const assistantMessage: Message = {
-                role: 'assistant',
-                content: data.message,
-                timestamp: new Date().toISOString()
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to get response' }))
+                throw new Error(errorData.error || 'Failed to get response')
             }
 
-            setMessages(prev => [...prev, assistantMessage])
+            // Handle streaming response
+            const reader = response.body?.getReader()
+            const decoder = new TextDecoder()
 
-            // Reload conversations to update the list
-            await loadConversations()
+            if (!reader) throw new Error('No reader available')
 
-            // If this was a new conversation, we need to set the current conversation ID
-            // The backend creates it, so we need to find it in the updated list
-            if (!currentConversationId) {
-                const response = await fetch('/api/conversations')
-                if (response.ok) {
-                    const data = await response.json()
-                    const convs = data.conversations || []
-                    if (convs.length > 0) {
-                        // The newest conversation should be first (ordered by updated_at desc)
-                        setCurrentConversationId(convs[0].id)
+            let fullContent = ''
+            let streamError: string | null = null
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) break
+
+                    const chunk = decoder.decode(value)
+                    const lines = chunk.split('\n')
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6))
+
+                                if (data.error) {
+                                    streamError = data.error
+                                    throw new Error(data.error)
+                                }
+
+                                if (data.warning) {
+                                    console.warn('Streaming warning:', data.warning)
+                                }
+
+                                if (data.content) {
+                                    fullContent += data.content
+                                    // Update the assistant message with accumulated content
+                                    setMessages(prev => {
+                                        const newMessages = [...prev]
+                                        newMessages[assistantMessageIndex] = {
+                                            ...newMessages[assistantMessageIndex],
+                                            content: fullContent
+                                        }
+                                        return newMessages
+                                    })
+                                }
+
+                                if (data.done) {
+                                    // Streaming complete
+                                    setLoading(false)
+
+                                    // Reload conversations to update the list
+                                    await loadConversations()
+
+                                    // If this was a new conversation, set the current conversation ID
+                                    if (!currentConversationId) {
+                                        const convResponse = await fetch('/api/conversations')
+                                        if (convResponse.ok) {
+                                            const convData = await convResponse.json()
+                                            const convs = convData.conversations || []
+                                            if (convs.length > 0) {
+                                                setCurrentConversationId(convs[0].id)
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (parseError) {
+                                console.error('Error parsing SSE data:', parseError)
+                                if (streamError) {
+                                    throw parseError
+                                }
+                            }
+                        }
                     }
                 }
+            } catch (streamError) {
+                console.error('Stream reading error:', streamError)
+                throw streamError
+            }
+
+            // If we got here but have no content, something went wrong
+            if (!fullContent) {
+                throw new Error('No response received from AI')
             }
         } catch (error) {
             console.error('Error sending message:', error)
-            const errorMessage: Message = {
-                role: 'assistant',
-                content: 'Sorry, I encountered an error. Please try again.',
-                timestamp: new Date().toISOString()
-            }
-            setMessages(prev => [...prev, errorMessage])
+            const errorMessage = error instanceof Error ? error.message : 'Sorry, I encountered an error. Please try again.'
+
+            // Replace the empty assistant message with an error message
+            setMessages(prev => {
+                const newMessages = [...prev]
+                newMessages[assistantMessageIndex] = {
+                    role: 'assistant',
+                    content: errorMessage,
+                    timestamp: new Date().toISOString()
+                }
+                return newMessages
+            })
         } finally {
             setLoading(false)
             textareaRef.current?.focus()
