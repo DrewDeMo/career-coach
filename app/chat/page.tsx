@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useRouter } from 'next/navigation'
 import ConversationSidebar from '@/components/ConversationSidebar'
 import SuggestionsPanel from '@/components/SuggestionsPanel'
-import { LayoutDashboard, User, LogOut, Send, MessageSquare, Loader2, Cpu } from 'lucide-react'
+import { LayoutDashboard, User, LogOut, Send, MessageSquare, Loader2, Cpu, Trophy } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -42,7 +42,7 @@ export default function ChatPage() {
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
     const [conversationsLoading, setConversationsLoading] = useState(true)
     const [suggestionsKey, setSuggestionsKey] = useState(0)
-    const [selectedModel, setSelectedModel] = useState('gpt-4o-mini')
+    const [selectedModel, setSelectedModel] = useState('gpt-4.1')
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -324,11 +324,11 @@ export default function ChatPage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="gpt-4.1">GPT-4.1 (Best)</SelectItem>
+                                        <SelectItem value="gpt-4.1">GPT-4.1 (Default)</SelectItem>
                                         <SelectItem value="gpt-4.1-mini">GPT-4.1 Mini</SelectItem>
                                         <SelectItem value="gpt-4.1-nano">GPT-4.1 Nano</SelectItem>
                                         <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                                        <SelectItem value="gpt-4o-mini">GPT-4o Mini (Default)</SelectItem>
+                                        <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
                                         <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
                                         <SelectItem value="gpt-4">GPT-4</SelectItem>
                                         <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
@@ -342,6 +342,14 @@ export default function ChatPage() {
                             >
                                 <LayoutDashboard className="w-4 h-4" />
                                 Dashboard
+                            </Button>
+                            <Button
+                                onClick={() => router.push('/achievements')}
+                                variant="outline"
+                                className="text-sm gap-2"
+                            >
+                                <Trophy className="w-4 h-4" />
+                                Achievements
                             </Button>
                             <Button
                                 onClick={() => router.push('/profile')}

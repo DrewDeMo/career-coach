@@ -139,22 +139,67 @@ async function fetchScoredProjects(
 ) {
     const supabase = await createClient()
 
+    // Fetch all non-cancelled projects (including completed and archived)
+    // Only exclude cancelled as they're truly irrelevant
     const { data: projects } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+            *,
+            project_milestones(count),
+            project_tasks(count),
+            project_issues(count)
+        `)
         .eq('user_id', userId)
-        .order('start_date', { ascending: false })
-        .limit(30)
+        .neq('status', 'cancelled')
+        .order('priority', { ascending: false })
+        .order('due_date', { ascending: true, nullsFirst: false })
+        .limit(50) // Increased from 30 to 50 for better coverage
 
     if (!projects || projects.length === 0) return []
 
     return scoreAndSortItems(projects, userMessage, keywords, {
-        dateField: 'start_date',
-        textFields: ['name', 'description'],
+        dateField: 'due_date',
+        textFields: ['name', 'description', 'category', 'notes'],
         weights: getWeightsForPriority(priority),
         limit,
         mentionCounts: stats.mentionCounts,
-        totalConversations: stats.totalConversations
+        totalConversations: stats.totalConversations,
+        customScoreBoost: (project: any) => {
+            let boost = 0
+
+            // Prioritize active projects over completed/archived
+            if (project.status === 'active') boost += 0.3
+            else if (project.status === 'on-hold') boost += 0.15
+            else if (project.status === 'completed') boost -= 0.1 // Slight penalty but still included
+
+            // Penalize archived projects unless specifically mentioned
+            if (project.archived) boost -= 0.2
+
+            // Boost critical/high priority projects
+            if (project.priority === 'critical') boost += 0.3
+            else if (project.priority === 'high') boost += 0.2
+
+            // Boost projects with issues (only for active/on-hold)
+            if (project.status === 'active' || project.status === 'on-hold') {
+                const issueCount = project.project_issues?.[0]?.count || 0
+                if (issueCount > 0) boost += 0.15
+            }
+
+            // Boost projects due soon (only for active/on-hold)
+            if ((project.status === 'active' || project.status === 'on-hold') && project.due_date) {
+                const dueDate = new Date(project.due_date)
+                const daysUntilDue = (dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+                if (daysUntilDue > 0 && daysUntilDue <= 7) boost += 0.2
+                else if (daysUntilDue < 0) boost += 0.25 // Overdue
+            }
+
+            // Boost projects with low completion but active status
+            if (project.status === 'active' && project.completion_percentage < 50) {
+                boost += 0.1
+            }
+
+            return boost
+        }
     })
 }
 

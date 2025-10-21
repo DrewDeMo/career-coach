@@ -189,6 +189,7 @@ export function scoreAndSortItems<T extends Record<string, any>>(
         limit?: number
         mentionCounts?: Map<string, number>
         totalConversations?: number
+        customScoreBoost?: (item: T) => number
     } = {}
 ): ScoredItem<T>[] {
     const {
@@ -197,7 +198,8 @@ export function scoreAndSortItems<T extends Record<string, any>>(
         weights = DEFAULT_WEIGHTS,
         limit,
         mentionCounts = new Map(),
-        totalConversations = 1
+        totalConversations = 1,
+        customScoreBoost
     } = options
 
     // Score all items
@@ -205,7 +207,7 @@ export function scoreAndSortItems<T extends Record<string, any>>(
         const itemId = item.id || item.name || JSON.stringify(item)
         const mentionCount = mentionCounts.get(itemId) || 0
 
-        return scoreItem(
+        const scored = scoreItem(
             item,
             userMessage,
             keywords,
@@ -215,6 +217,14 @@ export function scoreAndSortItems<T extends Record<string, any>>(
             textFields,
             weights
         )
+
+        // Apply custom score boost if provided
+        if (customScoreBoost) {
+            const boost = customScoreBoost(item)
+            scored.score = Math.min(100, scored.score + (boost * 100))
+        }
+
+        return scored
     })
 
     // Sort by score (highest first)

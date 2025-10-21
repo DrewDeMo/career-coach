@@ -311,6 +311,13 @@ export default function DashboardPage() {
                                 Chat
                             </Link>
                             <Link
+                                href="/projects"
+                                className="px-4 py-2 text-sm font-medium text-black hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors flex items-center gap-2"
+                            >
+                                <FolderKanban className="w-4 h-4" />
+                                Projects
+                            </Link>
+                            <Link
                                 href="/coworkers"
                                 className="px-4 py-2 text-sm font-medium text-black hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors flex items-center gap-2"
                             >
@@ -367,20 +374,22 @@ export default function DashboardPage() {
                     </Card>
 
                     {/* Projects Card */}
-                    <Card className="p-6 border border-gray-200 hover:shadow-lg transition-shadow">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="text-sm font-medium text-gray-600">Projects</div>
-                            <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-                                <FolderKanban className="w-5 h-5 text-purple-600" />
+                    <Link href="/projects">
+                        <Card className="p-6 border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="text-sm font-medium text-gray-600">Projects</div>
+                                <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                                    <FolderKanban className="w-5 h-5 text-purple-600" />
+                                </div>
                             </div>
-                        </div>
-                        <div className="text-3xl font-bold text-black mb-1">
-                            {stats.totalProjects}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                            Total tracked
-                        </div>
-                    </Card>
+                            <div className="text-3xl font-bold text-black mb-1">
+                                {stats.totalProjects}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                                Total tracked
+                            </div>
+                        </Card>
+                    </Link>
 
                     {/* Achievements Card */}
                     <Card className="p-6 border border-gray-200 hover:shadow-lg transition-shadow">

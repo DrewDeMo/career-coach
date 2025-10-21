@@ -7,14 +7,18 @@ AI-powered career coaching platform with intelligent context retrieval, relation
 
 ---
 
-## 📊 Database Schema (14 Tables)
+## 📊 Database Schema (18 Tables)
 
 ### Core Tables
 - **users**: Auth user data
 - **career_profiles**: Role, company, experience, industry, responsibilities
 - **skills**: Name, category, proficiency_level, last_used
 - **goals**: Title, description, category, status, target_date, milestones
-- **projects**: Name, status, description, technologies, dates, team_members
+- **projects**: Name, status, priority, description, technologies, dates, team_members, completion_percentage, budget, estimated_hours, category, tags, stakeholders, goals, risks, dependencies, deliverables, notes, archived
+- **project_milestones**: Project_id, title, description, due_date, completed, deliverables, order_index
+- **project_tasks**: Project_id, milestone_id, title, description, status, priority, assigned_to, due_date, estimated_hours, actual_hours, tags, dependencies, blockers, order_index
+- **project_updates**: Project_id, update_type, title, description, previous_value, new_value, impact
+- **project_issues**: Project_id, title, description, severity, status, category, reported_date, resolved_date, resolution, impact_on_timeline, related_tasks
 - **challenges**: Title, description, category, status, context
 - **achievements**: Title, description, achieved_date, impact
 - **training_sessions**: Topic, description, date, attendees, feedback, ai_tools
@@ -70,6 +74,17 @@ Streaming Response → Markdown Rendering → Entity Extraction → Save Suggest
 6. `achievements_progress` → Fetches achievements, projects, goals, skills
 7. `general_coaching` → Balanced fetch of all sources
 
+**Project Context Intelligence**:
+Projects are intelligently prioritized in chat context with custom scoring boosts:
+- **Status boost**: Active (+0.3), On-hold (+0.15), Completed (-0.1), Archived (-0.2)
+- **Priority boost**: Critical (+0.3), High (+0.2)
+- **Issue boost**: Active/on-hold projects with open issues (+0.15)
+- **Due date boost**: Active/on-hold projects due within 7 days (+0.2), Overdue (+0.25)
+- **Progress boost**: Active projects <50% complete (+0.1)
+- **Includes ALL projects** except cancelled (completed and archived projects available for historical context)
+- Fetches up to 50 projects before scoring for comprehensive coverage
+- Includes milestone, task, and issue counts for comprehensive context
+
 ### 3. Entity Extraction & Suggestions
 **Location**: [`lib/entity-extraction.ts`](lib/entity-extraction.ts), [`app/api/suggestions/`](app/api/suggestions/)
 
@@ -91,7 +106,24 @@ Streaming Response → Markdown Rendering → Entity Extraction → Save Suggest
 
 **Features**: Statistics, progress tracking, interactive charts (pie, bar, line, area, heatmap)
 
-### 6. Profile Management
+### 6. Project Management
+**Location**: [`app/projects/`](app/projects/), [`app/api/projects/`](app/api/projects/)
+
+**Features**:
+- List view with search/filter (status, priority, category)
+- Create/edit projects with comprehensive fields
+- Track milestones, tasks, and issues
+- Progress tracking with automatic completion percentage
+- Budget and time tracking (estimated vs actual)
+- Project health indicators (overdue, due soon, blocked tasks)
+- Smart prioritization in chat context based on priority, issues, due dates, and completion
+
+**Components**:
+- [`components/ProjectCard.tsx`](components/ProjectCard.tsx) - Project card with stats and progress
+- [`app/projects/page.tsx`](app/projects/page.tsx) - Projects listing with tabs
+- [`app/projects/new/page.tsx`](app/projects/new/page.tsx) - Create project form
+
+### 7. Profile Management
 **Location**: [`app/profile/page.tsx`](app/profile/page.tsx)
 
 **Features**: View/edit career data, delete functionality
@@ -123,6 +155,17 @@ Streaming Response → Markdown Rendering → Entity Extraction → Save Suggest
 - `GET /api/interactions` - List interactions (filterable by coworker)
 - `POST /api/interactions` - Create interaction
 
+### Projects
+- `GET /api/projects` - List projects (filterable by status, priority, category, archived)
+- `POST /api/projects` - Create project
+- `GET /api/projects/[id]` - Get project with milestones, tasks, updates, issues
+- `PATCH /api/projects/[id]` - Update project (auto-logs significant changes)
+- `DELETE /api/projects/[id]` - Delete project
+- `GET /api/projects/[id]/tasks` - List project tasks (filterable by status, milestone)
+- `POST /api/projects/[id]/tasks` - Create task
+- `GET /api/projects/[id]/issues` - List project issues (filterable by status, severity)
+- `POST /api/projects/[id]/issues` - Report issue (auto-logs as blocker)
+
 ### Decisions
 - `GET /api/decisions` - List decisions
 - `POST /api/decisions` - Create decision
@@ -138,6 +181,7 @@ Streaming Response → Markdown Rendering → Entity Extraction → Save Suggest
 - **ConversationSidebar** ([`components/ConversationSidebar.tsx`](components/ConversationSidebar.tsx)): Chat history with search/filter
 - **SuggestionsPanel** ([`components/SuggestionsPanel.tsx`](components/SuggestionsPanel.tsx)): Entity suggestions UI
 - **InteractionTimeline** ([`components/InteractionTimeline.tsx`](components/InteractionTimeline.tsx)): Coworker interaction history
+- **ProjectCard** ([`components/ProjectCard.tsx`](components/ProjectCard.tsx)): Project summary with progress, stats, and health indicators
 - **AnalyticsCharts** ([`components/AnalyticsCharts.tsx`](components/AnalyticsCharts.tsx)): Recharts visualizations
 
 ---

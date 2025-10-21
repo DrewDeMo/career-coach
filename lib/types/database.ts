@@ -140,12 +140,30 @@ export interface Database {
                     id: string
                     user_id: string
                     name: string
-                    status: 'active' | 'completed' | 'on-hold' | 'cancelled'
+                    status: 'active' | 'ongoing' | 'completed' | 'on-hold' | 'cancelled'
                     description: string | null
                     technologies: Json
                     start_date: string | null
                     end_date: string | null
                     team_members: Json
+                    priority: 'low' | 'medium' | 'high' | 'critical'
+                    due_date: string | null
+                    completion_percentage: number
+                    budget: number | null
+                    actual_cost: number | null
+                    estimated_hours: number | null
+                    actual_hours: number | null
+                    category: string | null
+                    tags: Json
+                    stakeholders: Json
+                    goals: Json
+                    risks: Json
+                    dependencies: Json
+                    deliverables: Json
+                    notes: string | null
+                    current_issues: string | null
+                    archived: boolean
+                    archived_at: string | null
                     created_at: string
                     updated_at: string
                 }
@@ -153,12 +171,30 @@ export interface Database {
                     id?: string
                     user_id: string
                     name: string
-                    status?: 'active' | 'completed' | 'on-hold' | 'cancelled'
+                    status?: 'active' | 'ongoing' | 'completed' | 'on-hold' | 'cancelled'
                     description?: string | null
                     technologies?: Json
                     start_date?: string | null
                     end_date?: string | null
                     team_members?: Json
+                    priority?: 'low' | 'medium' | 'high' | 'critical'
+                    due_date?: string | null
+                    completion_percentage?: number
+                    budget?: number | null
+                    actual_cost?: number | null
+                    estimated_hours?: number | null
+                    actual_hours?: number | null
+                    category?: string | null
+                    tags?: Json
+                    stakeholders?: Json
+                    goals?: Json
+                    risks?: Json
+                    dependencies?: Json
+                    deliverables?: Json
+                    notes?: string | null
+                    current_issues?: string | null
+                    archived?: boolean
+                    archived_at?: string | null
                     created_at?: string
                     updated_at?: string
                 }
@@ -166,12 +202,30 @@ export interface Database {
                     id?: string
                     user_id?: string
                     name?: string
-                    status?: 'active' | 'completed' | 'on-hold' | 'cancelled'
+                    status?: 'active' | 'ongoing' | 'completed' | 'on-hold' | 'cancelled'
                     description?: string | null
                     technologies?: Json
                     start_date?: string | null
                     end_date?: string | null
                     team_members?: Json
+                    priority?: 'low' | 'medium' | 'high' | 'critical'
+                    due_date?: string | null
+                    completion_percentage?: number
+                    budget?: number | null
+                    actual_cost?: number | null
+                    estimated_hours?: number | null
+                    actual_hours?: number | null
+                    category?: string | null
+                    tags?: Json
+                    stakeholders?: Json
+                    goals?: Json
+                    risks?: Json
+                    dependencies?: Json
+                    deliverables?: Json
+                    notes?: string | null
+                    current_issues?: string | null
+                    archived?: boolean
+                    archived_at?: string | null
                     created_at?: string
                     updated_at?: string
                 }
@@ -575,6 +629,206 @@ export interface Database {
                     follow_up_actions?: Json
                     created_at?: string
                     updated_at?: string
+                }
+                project_milestones: {
+                    Row: {
+                        id: string
+                        project_id: string
+                        user_id: string
+                        title: string
+                        description: string | null
+                        due_date: string | null
+                        completed: boolean
+                        completed_at: string | null
+                        order_index: number
+                        deliverables: Json
+                        created_at: string
+                        updated_at: string
+                    }
+                    Insert: {
+                        id?: string
+                        project_id: string
+                        user_id: string
+                        title: string
+                        description?: string | null
+                        due_date?: string | null
+                        completed?: boolean
+                        completed_at?: string | null
+                        order_index?: number
+                        deliverables?: Json
+                        created_at?: string
+                        updated_at?: string
+                    }
+                    Update: {
+                        id?: string
+                        project_id?: string
+                        user_id?: string
+                        title?: string
+                        description?: string | null
+                        due_date?: string | null
+                        completed?: boolean
+                        completed_at?: string | null
+                        order_index?: number
+                        deliverables?: Json
+                        created_at?: string
+                        updated_at?: string
+                    }
+                }
+                project_tasks: {
+                    Row: {
+                        id: string
+                        project_id: string
+                        milestone_id: string | null
+                        user_id: string
+                        title: string
+                        description: string | null
+                        status: 'todo' | 'in_progress' | 'blocked' | 'completed' | 'cancelled'
+                        priority: 'low' | 'medium' | 'high' | 'critical'
+                        assigned_to: string | null
+                        due_date: string | null
+                        completed_at: string | null
+                        estimated_hours: number | null
+                        actual_hours: number | null
+                        tags: Json
+                        dependencies: Json
+                        blockers: string | null
+                        order_index: number
+                        created_at: string
+                        updated_at: string
+                    }
+                    Insert: {
+                        id?: string
+                        project_id: string
+                        milestone_id?: string | null
+                        user_id: string
+                        title: string
+                        description?: string | null
+                        status?: 'todo' | 'in_progress' | 'blocked' | 'completed' | 'cancelled'
+                        priority?: 'low' | 'medium' | 'high' | 'critical'
+                        assigned_to?: string | null
+                        due_date?: string | null
+                        completed_at?: string | null
+                        estimated_hours?: number | null
+                        actual_hours?: number | null
+                        tags?: Json
+                        dependencies?: Json
+                        blockers?: string | null
+                        order_index?: number
+                        created_at?: string
+                        updated_at?: string
+                    }
+                    Update: {
+                        id?: string
+                        project_id?: string
+                        milestone_id?: string | null
+                        user_id?: string
+                        title?: string
+                        description?: string | null
+                        status?: 'todo' | 'in_progress' | 'blocked' | 'completed' | 'cancelled'
+                        priority?: 'low' | 'medium' | 'high' | 'critical'
+                        assigned_to?: string | null
+                        due_date?: string | null
+                        completed_at?: string | null
+                        estimated_hours?: number | null
+                        actual_hours?: number | null
+                        tags?: Json
+                        dependencies?: Json
+                        blockers?: string | null
+                        order_index?: number
+                        created_at?: string
+                        updated_at?: string
+                    }
+                }
+                project_updates: {
+                    Row: {
+                        id: string
+                        project_id: string
+                        user_id: string
+                        update_type: 'progress' | 'blocker' | 'milestone' | 'status_change' | 'note'
+                        title: string
+                        description: string | null
+                        previous_value: string | null
+                        new_value: string | null
+                        impact: 'positive' | 'negative' | 'neutral' | null
+                        created_at: string
+                    }
+                    Insert: {
+                        id?: string
+                        project_id: string
+                        user_id: string
+                        update_type: 'progress' | 'blocker' | 'milestone' | 'status_change' | 'note'
+                        title: string
+                        description?: string | null
+                        previous_value?: string | null
+                        new_value?: string | null
+                        impact?: 'positive' | 'negative' | 'neutral' | null
+                        created_at?: string
+                    }
+                    Update: {
+                        id?: string
+                        project_id?: string
+                        user_id?: string
+                        update_type?: 'progress' | 'blocker' | 'milestone' | 'status_change' | 'note'
+                        title?: string
+                        description?: string | null
+                        previous_value?: string | null
+                        new_value?: string | null
+                        impact?: 'positive' | 'negative' | 'neutral' | null
+                        created_at?: string
+                    }
+                }
+                project_issues: {
+                    Row: {
+                        id: string
+                        project_id: string
+                        user_id: string
+                        title: string
+                        description: string | null
+                        severity: 'low' | 'medium' | 'high' | 'critical'
+                        status: 'open' | 'in_progress' | 'resolved' | 'closed' | 'wont_fix'
+                        category: string | null
+                        reported_date: string
+                        resolved_date: string | null
+                        resolution: string | null
+                        impact_on_timeline: string | null
+                        related_tasks: Json
+                        created_at: string
+                        updated_at: string
+                    }
+                    Insert: {
+                        id?: string
+                        project_id: string
+                        user_id: string
+                        title: string
+                        description?: string | null
+                        severity?: 'low' | 'medium' | 'high' | 'critical'
+                        status?: 'open' | 'in_progress' | 'resolved' | 'closed' | 'wont_fix'
+                        category?: string | null
+                        reported_date?: string
+                        resolved_date?: string | null
+                        resolution?: string | null
+                        impact_on_timeline?: string | null
+                        related_tasks?: Json
+                        created_at?: string
+                        updated_at?: string
+                    }
+                    Update: {
+                        id?: string
+                        project_id?: string
+                        user_id?: string
+                        title?: string
+                        description?: string | null
+                        severity?: 'low' | 'medium' | 'high' | 'critical'
+                        status?: 'open' | 'in_progress' | 'resolved' | 'closed' | 'wont_fix'
+                        category?: string | null
+                        reported_date?: string
+                        resolved_date?: string | null
+                        resolution?: string | null
+                        impact_on_timeline?: string | null
+                        related_tasks?: Json
+                        created_at?: string
+                        updated_at?: string
+                    }
                 }
             }
         }
