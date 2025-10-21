@@ -2,176 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import { extractEntitiesFromConversation, hasExtractedEntities } from '@/lib/entity-extraction'
+import { getEnhancedUserContext } from '@/lib/enhanced-context'
+import { buildEnhancedSystemPrompt } from '@/lib/coaching-prompts'
+import { getConversationMemory, buildMemoryContext } from '@/lib/conversation-memory'
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 })
-
-interface UserContext {
-    profile: any
-    skills: any[]
-    goals: any[]
-    recentProjects: any[]
-    coworkers: any[]
-}
-
-async function getUserContext(userId: string): Promise<UserContext> {
-    const supabase = await createClient()
-
-    // Fetch career profile
-    const { data: profile } = await supabase
-        .from('career_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .single()
-
-    // Fetch skills
-    const { data: skills } = await supabase
-        .from('skills')
-        .select('*')
-        .eq('user_id', userId)
-        .order('proficiency_level', { ascending: false })
-        .limit(10)
-
-    // Fetch active goals
-    const { data: goals } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(5)
-
-    // Fetch recent projects
-    const { data: recentProjects } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', userId)
-        .order('start_date', { ascending: false })
-        .limit(5)
-
-    // Fetch coworkers
-    const { data: coworkers } = await supabase
-        .from('coworkers')
-        .select('*')
-        .eq('user_id', userId)
-        .order('influence_score', { ascending: false, nullsFirst: false })
-        .limit(10)
-
-    return {
-        profile: profile || {},
-        skills: skills || [],
-        goals: goals || [],
-        recentProjects: recentProjects || [],
-        coworkers: coworkers || []
-    }
-}
-
-function buildSystemPrompt(context: UserContext): string {
-    const { profile, skills, goals, recentProjects, coworkers } = context
-
-    let prompt = `You are an expert AI career coach providing personalized guidance. You are supportive, insightful, and action-oriented.
-
-# User's Career Profile
-`
-
-    if (profile.role_title) {
-        prompt += `- Current Role: ${profile.role_title}\n`
-    }
-    if (profile.company) {
-        prompt += `- Company: ${profile.company}\n`
-    }
-    if (profile.department) {
-        prompt += `- Department: ${profile.department}\n`
-    }
-    if (profile.years_experience) {
-        prompt += `- Years of Experience: ${profile.years_experience}\n`
-    }
-    if (profile.industry) {
-        prompt += `- Industry: ${profile.industry}\n`
-    }
-    if (profile.responsibilities && Array.isArray(profile.responsibilities) && profile.responsibilities.length > 0) {
-        prompt += `- Key Responsibilities: ${profile.responsibilities.join(', ')}\n`
-    }
-
-    if (skills.length > 0) {
-        prompt += `\n# Current Skills\n`
-        skills.forEach(skill => {
-            prompt += `- ${skill.name || skill.skill_name} (${skill.category || 'General'}) - Proficiency: ${skill.proficiency_level}\n`
-        })
-    }
-
-    if (goals.length > 0) {
-        prompt += `\n# Active Career Goals\n`
-        goals.forEach(goal => {
-            prompt += `- ${goal.title}`
-            if (goal.description) {
-                prompt += `: ${goal.description}`
-            }
-            if (goal.category) {
-                prompt += ` [${goal.category}]`
-            }
-            prompt += `\n`
-        })
-    }
-
-    if (recentProjects.length > 0) {
-        prompt += `\n# Recent Projects\n`
-        recentProjects.forEach(project => {
-            prompt += `- ${project.name}`
-            if (project.description) {
-                prompt += `: ${project.description}`
-            }
-            prompt += `\n`
-        })
-    }
-
-    if (coworkers.length > 0) {
-        prompt += `\n# Key Co-workers & Relationships\n`
-        coworkers.forEach(coworker => {
-            prompt += `- ${coworker.name}`
-            if (coworker.role) {
-                prompt += ` (${coworker.role})`
-            }
-            if (coworker.influence_score) {
-                prompt += ` - Influence: ${coworker.influence_score}/10`
-            }
-            if (coworker.relationship_quality) {
-                prompt += `, Relationship: ${coworker.relationship_quality}/10`
-            }
-            if (coworker.career_impact) {
-                prompt += ` [${coworker.career_impact} impact]`
-            }
-            prompt += `\n`
-        })
-    }
-
-    prompt += `
-
-# Your Role as Career Coach
-- Provide personalized advice based on the user's profile, skills, goals, and relationships
-- Be encouraging and supportive while being honest and realistic
-- Suggest specific, actionable steps the user can take
-- Help identify skill gaps and learning opportunities
-- Assist with career planning, goal setting, and professional development
-- Provide guidance on workplace relationships and office dynamics
-- Help navigate career decisions considering relationship impacts
-- Ask clarifying questions when needed to provide better guidance
-- Keep responses concise but comprehensive (aim for 2-4 paragraphs)
-- Use a warm, professional tone
-
-# Guidelines
-- Reference the user's specific context when relevant (skills, goals, relationships)
-- Consider relationship dynamics when giving advice about career moves
-- Provide concrete examples and resources when possible
-- Help break down large goals into manageable steps
-- Celebrate progress and achievements
-- Be honest about challenges while maintaining optimism
-- Respect the user's career choices and aspirations
-- When discussing co-workers, be professional and constructive`
-
-    return prompt
-}
 
 async function saveSuggestions(
     supabase: any,
@@ -320,11 +157,17 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Get user context
-        const context = await getUserContext(user.id)
+        // Get enhanced user context with intelligent data fetching based on message intent
+        const enhancedContext = await getEnhancedUserContext(user.id, message)
 
-        // Build system prompt with context
-        const systemPrompt = buildSystemPrompt(context)
+        // Get conversation memory for continuity
+        const conversationMemory = await getConversationMemory(user.id)
+
+        // Build enhanced system prompt with all context and coaching frameworks
+        let systemPrompt = buildEnhancedSystemPrompt(enhancedContext)
+
+        // Add conversation memory for continuity
+        systemPrompt += buildMemoryContext(conversationMemory)
 
         // Build messages array for OpenAI (include conversation history if provided)
         const messages: any[] = [
@@ -351,7 +194,7 @@ export async function POST(request: NextRequest) {
                 model: 'gpt-4o-mini',
                 messages,
                 temperature: 0.7,
-                max_tokens: 1000,
+                max_tokens: 1500, // Increased for more comprehensive responses
                 stream: true
             })
 
@@ -388,13 +231,22 @@ export async function POST(request: NextRequest) {
                             timestamp: new Date().toISOString()
                         }
 
-                        // Extract entities from the conversation
+                        // Extract entities from the conversation using enhanced context
                         let extractedEntities = null
                         try {
+                            // Convert enhanced context to format expected by entity extraction
+                            const extractionContext = {
+                                profile: enhancedContext.profile,
+                                skills: enhancedContext.skills.map(s => s.item),
+                                goals: enhancedContext.goals.map(g => g.item),
+                                projects: enhancedContext.projects.map(p => p.item),
+                                coworkers: enhancedContext.coworkers.map(c => c.item)
+                            }
+
                             extractedEntities = await extractEntitiesFromConversation(
                                 message,
                                 fullContent,
-                                context
+                                extractionContext
                             )
                         } catch (extractError) {
                             console.error('Entity extraction error:', extractError)
@@ -501,7 +353,7 @@ export async function POST(request: NextRequest) {
             model: 'gpt-4o-mini',
             messages,
             temperature: 0.7,
-            max_tokens: 1000
+            max_tokens: 1500
         })
 
         const assistantMessage = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
