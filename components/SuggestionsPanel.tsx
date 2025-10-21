@@ -13,12 +13,15 @@ import {
     User,
     Check,
     X,
-    Loader2
+    Loader2,
+    Users,
+    MessageSquare,
+    GitBranch
 } from 'lucide-react'
 
 interface Suggestion {
     id: string
-    entity_type: 'skill' | 'skill_update' | 'goal' | 'project' | 'challenge' | 'achievement' | 'profile_update'
+    entity_type: 'skill' | 'skill_update' | 'goal' | 'project' | 'challenge' | 'achievement' | 'profile_update' | 'coworker' | 'interaction' | 'decision'
     entity_data: any
     context: string
     status: 'pending' | 'accepted' | 'rejected'
@@ -59,21 +62,25 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
 
     const handleAction = async (suggestionId: string, action: 'accept' | 'reject') => {
         try {
+            // Optimistically remove the suggestion immediately for better UX
+            setSuggestions(prev => prev.filter(s => s.id !== suggestionId))
             setProcessingId(suggestionId)
+
             const response = await fetch(`/api/suggestions/${suggestionId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action })
             })
 
-            if (response.ok) {
-                // Remove the suggestion from the list
-                setSuggestions(prev => prev.filter(s => s.id !== suggestionId))
-            } else {
+            if (!response.ok) {
                 console.error('Failed to process suggestion')
+                // Optionally: re-fetch suggestions to restore state on error
+                fetchSuggestions()
             }
         } catch (error) {
             console.error('Error processing suggestion:', error)
+            // Optionally: re-fetch suggestions to restore state on error
+            fetchSuggestions()
         } finally {
             setProcessingId(null)
         }
@@ -87,7 +94,10 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
             project: 'Project',
             challenge: 'Challenge',
             achievement: 'Achievement',
-            profile_update: 'Profile Update'
+            profile_update: 'Profile Update',
+            coworker: 'Co-worker',
+            interaction: 'Interaction',
+            decision: 'Decision'
         }
         return labels[type] || type
     }
@@ -100,7 +110,10 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
             project: FolderKanban,
             challenge: AlertCircle,
             achievement: Award,
-            profile_update: User
+            profile_update: User,
+            coworker: Users,
+            interaction: MessageSquare,
+            decision: GitBranch
         }
         const Icon = icons[type] || Sparkles
         return <Icon className="w-4 h-4" />
@@ -114,7 +127,10 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
             project: 'bg-purple-50 text-purple-700 border-purple-200',
             challenge: 'bg-orange-50 text-orange-700 border-orange-200',
             achievement: 'bg-amber-50 text-amber-700 border-amber-200',
-            profile_update: 'bg-gray-50 text-gray-700 border-gray-200'
+            profile_update: 'bg-gray-50 text-gray-700 border-gray-200',
+            coworker: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+            interaction: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+            decision: 'bg-violet-50 text-violet-700 border-violet-200'
         }
         return colors[type] || 'bg-gray-50 text-gray-700 border-gray-200'
     }
@@ -130,11 +146,16 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
             case 'project':
             case 'challenge':
             case 'achievement':
+            case 'decision':
                 return data.title || data.project_name
             case 'profile_update':
-                return `Update ${data.field.replace('_', ' ')}`
+                return `Update ${data.field?.replace('_', ' ') || 'profile'}`
+            case 'coworker':
+                return data.name
+            case 'interaction':
+                return `Interaction with ${data.coworker_name}`
             default:
-                return 'Unknown'
+                return 'Update'
         }
     }
 
@@ -149,9 +170,14 @@ export default function SuggestionsPanel({ conversationId }: SuggestionsPanelPro
             case 'project':
             case 'challenge':
             case 'achievement':
+            case 'decision':
                 return data.description
             case 'profile_update':
                 return `New value: ${Array.isArray(data.value) ? data.value.join(', ') : data.value}`
+            case 'coworker':
+                return `${data.role || 'Co-worker'}${data.department ? ` • ${data.department}` : ''}`
+            case 'interaction':
+                return data.description || `${data.interaction_type} interaction`
             default:
                 return ''
         }

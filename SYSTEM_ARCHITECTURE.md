@@ -3,7 +3,7 @@
 ## 🏗️ System Overview
 AI-powered career coaching platform with intelligent context retrieval, relationship intelligence, and professional coaching frameworks.
 
-**Stack**: Next.js 15.5.6, TypeScript, Tailwind CSS v4, Supabase, OpenAI GPT-4o-mini, shadcn/ui, Recharts
+**Stack**: Next.js 15.5.6, TypeScript, Tailwind CSS v4, Supabase, OpenAI GPT-4o-mini, shadcn/ui, Recharts, react-markdown
 
 ---
 
@@ -43,10 +43,16 @@ AI-powered career coaching platform with intelligent context retrieval, relation
 
 **Flow**:
 ```
-User Message → Intent Analysis → Enhanced Context Retrieval → 
-Conversation Memory → System Prompt Building → GPT-4o-mini → 
-Streaming Response → Entity Extraction → Save Suggestions
+User Message → Intent Analysis → Enhanced Context Retrieval →
+Conversation Memory → System Prompt Building → GPT-4o-mini →
+Streaming Response → Markdown Rendering → Entity Extraction → Save Suggestions
 ```
+
+**Markdown Rendering**:
+- AI responses are rendered with full markdown support using `react-markdown` and `remark-gfm`
+- Custom styling in [`app/globals.css`](app/globals.css) maintains minimal black/white aesthetic
+- Supports: bold text, headers, lists, code blocks, blockquotes, links, and more
+- User messages remain plain text for clarity
 
 **Key Components**:
 - **Intent Analyzer** ([`lib/context-analyzer.ts`](lib/context-analyzer.ts)): Determines message intent (7 categories), selects relevant data sources
@@ -186,8 +192,9 @@ Tracks across last 20 conversations:
 - [`lib/utils.ts`](lib/utils.ts) - Utility functions
 
 ### Styles
-- [`app/globals.css`](app/globals.css) - Global styles, Manrope font (200-800 weights)
+- [`app/globals.css`](app/globals.css) - Global styles, Manrope font (200-800 weights), markdown formatting
 - Design: Minimal black/white aesthetic
+- Custom `.markdown-content` class for formatted AI responses
 
 ---
 
@@ -208,9 +215,10 @@ Tracks across last 20 conversations:
 
 ### To Modify UI
 1. **Chat interface**: [`app/chat/page.tsx`](app/chat/page.tsx)
-2. **Dashboard**: [`app/dashboard/page.tsx`](app/dashboard/page.tsx)
-3. **Coworkers**: [`app/coworkers/page.tsx`](app/coworkers/page.tsx), [`app/coworkers/[id]/page.tsx`](app/coworkers/[id]/page.tsx)
-4. **Components**: [`components/`](components/)
+2. **Markdown styling**: [`app/globals.css`](app/globals.css) - Edit `.markdown-content` class
+3. **Dashboard**: [`app/dashboard/page.tsx`](app/dashboard/page.tsx)
+4. **Coworkers**: [`app/coworkers/page.tsx`](app/coworkers/page.tsx), [`app/coworkers/[id]/page.tsx`](app/coworkers/[id]/page.tsx)
+5. **Components**: [`components/`](components/)
 
 ### To Add API Endpoint
 1. Create route in [`app/api/`](app/api/)
