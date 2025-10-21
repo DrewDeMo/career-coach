@@ -307,6 +307,13 @@ export default function ChatPage() {
                         </div>
                         <div className="flex gap-2">
                             <Button
+                                onClick={() => router.push('/dashboard')}
+                                variant="outline"
+                                className="text-sm"
+                            >
+                                Dashboard
+                            </Button>
+                            <Button
                                 onClick={() => router.push('/profile')}
                                 variant="outline"
                                 className="text-sm"

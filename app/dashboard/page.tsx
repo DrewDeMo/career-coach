@@ -1,0 +1,403 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import Link from 'next/link';
+
+interface DashboardStats {
+    totalSkills: number;
+    totalGoals: number;
+    activeGoals: number;
+    completedGoals: number;
+    totalProjects: number;
+    totalAchievements: number;
+    skillsByCategory: { [key: string]: number };
+    goalsByCategory: { [key: string]: number };
+    recentSkills: Array<{ name: string; proficiency_level: string; created_at: string }>;
+    recentGoals: Array<{ title: string; status: string; created_at: string }>;
+}
+
+export default function DashboardPage() {
+    const router = useRouter();
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [userName, setUserName] = useState<string>('');
+
+    useEffect(() => {
+        loadDashboardData();
+    }, []);
+
+    async function loadDashboardData() {
+        try {
+            const supabase = createClient();
+
+            // Get user
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push('/auth/login');
+                return;
+            }
+
+            // Get user profile for name
+            const { data: profile } = await supabase
+                .from('career_profiles')
+                .select('role_title')
+                .eq('user_id', user.id)
+                .single();
+
+            if (profile) {
+                setUserName(profile.role_title || 'there');
+            }
+
+            // Get all stats in parallel
+            const [
+                skillsResult,
+                goalsResult,
+                projectsResult,
+                achievementsResult,
+            ] = await Promise.all([
+                supabase.from('skills').select('*').eq('user_id', user.id),
+                supabase.from('goals').select('*').eq('user_id', user.id),
+                supabase.from('projects').select('*').eq('user_id', user.id),
+                supabase.from('achievements').select('*').eq('user_id', user.id),
+            ]);
+
+            const skills = skillsResult.data || [];
+            const goals = goalsResult.data || [];
+            const projects = projectsResult.data || [];
+            const achievements = achievementsResult.data || [];
+
+            // Calculate stats
+            const activeGoals = goals.filter(g => g.status === 'active').length;
+            const completedGoals = goals.filter(g => g.status === 'completed').length;
+
+            // Group by category
+            const skillsByCategory: { [key: string]: number } = {};
+            skills.forEach(skill => {
+                const category = skill.category || 'Other';
+                skillsByCategory[category] = (skillsByCategory[category] || 0) + 1;
+            });
+
+            const goalsByCategory: { [key: string]: number } = {};
+            goals.forEach(goal => {
+                const category = goal.category || 'Other';
+                goalsByCategory[category] = (goalsByCategory[category] || 0) + 1;
+            });
+
+            // Get recent items (last 5)
+            const recentSkills = skills
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 5)
+                .map(s => ({
+                    name: s.skill_name || s.name || 'Unnamed Skill',
+                    proficiency_level: s.proficiency_level || 'beginner',
+                    created_at: s.created_at,
+                }));
+
+            const recentGoals = goals
+                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                .slice(0, 5)
+                .map(g => ({
+                    title: g.title,
+                    status: g.status,
+                    created_at: g.created_at,
+                }));
+
+            setStats({
+                totalSkills: skills.length,
+                totalGoals: goals.length,
+                activeGoals,
+                completedGoals,
+                totalProjects: projects.length,
+                totalAchievements: achievements.length,
+                skillsByCategory,
+                goalsByCategory,
+                recentSkills,
+                recentGoals,
+            });
+        } catch (error) {
+            console.error('Error loading dashboard:', error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-sm text-gray-400">Loading dashboard...</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!stats) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="text-sm text-gray-400">Failed to load dashboard</div>
+                </div>
+            </div>
+        );
+    }
+
+    const goalCompletionRate = stats.totalGoals > 0
+        ? Math.round((stats.completedGoals / stats.totalGoals) * 100)
+        : 0;
+
+    return (
+        <div className="min-h-screen bg-white">
+            {/* Header */}
+            <div className="border-b border-gray-200">
+                <div className="max-w-7xl mx-auto px-6 py-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-semibold text-black">
+                                Welcome back{userName ? `, ${userName}` : ''}
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Here's an overview of your career progress
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <Link
+                                href="/chat"
+                                className="px-4 py-2 text-sm font-medium text-black hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors"
+                            >
+                                Chat
+                            </Link>
+                            <Link
+                                href="/profile"
+                                className="px-4 py-2 text-sm font-medium text-black hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors"
+                            >
+                                Profile
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="max-w-7xl mx-auto px-6 py-8">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Skills Card */}
+                    <Card className="p-6 border border-gray-200">
+                        <div className="text-sm text-gray-500 mb-2">Total Skills</div>
+                        <div className="text-3xl font-semibold text-black mb-1">
+                            {stats.totalSkills}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                            Across {Object.keys(stats.skillsByCategory).length} categories
+                        </div>
+                    </Card>
+
+                    {/* Goals Card */}
+                    <Card className="p-6 border border-gray-200">
+                        <div className="text-sm text-gray-500 mb-2">Active Goals</div>
+                        <div className="text-3xl font-semibold text-black mb-1">
+                            {stats.activeGoals}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                            {stats.completedGoals} completed
+                        </div>
+                    </Card>
+
+                    {/* Projects Card */}
+                    <Card className="p-6 border border-gray-200">
+                        <div className="text-sm text-gray-500 mb-2">Projects</div>
+                        <div className="text-3xl font-semibold text-black mb-1">
+                            {stats.totalProjects}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                            Total tracked
+                        </div>
+                    </Card>
+
+                    {/* Achievements Card */}
+                    <Card className="p-6 border border-gray-200">
+                        <div className="text-sm text-gray-500 mb-2">Achievements</div>
+                        <div className="text-3xl font-semibold text-black mb-1">
+                            {stats.totalAchievements}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                            Career milestones
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Goal Progress */}
+                {stats.totalGoals > 0 && (
+                    <Card className="p-6 border border-gray-200 mb-8">
+                        <h2 className="text-lg font-semibold text-black mb-4">
+                            Goal Completion
+                        </h2>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">Overall Progress</span>
+                                <span className="font-medium text-black">{goalCompletionRate}%</span>
+                            </div>
+                            <Progress value={goalCompletionRate} className="h-2" />
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span>{stats.completedGoals} completed</span>
+                                <span>{stats.activeGoals} active</span>
+                                <span>{stats.totalGoals} total</span>
+                            </div>
+                        </div>
+                    </Card>
+                )}
+
+                {/* Two Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Skills Breakdown */}
+                    {Object.keys(stats.skillsByCategory).length > 0 && (
+                        <Card className="p-6 border border-gray-200">
+                            <h2 className="text-lg font-semibold text-black mb-4">
+                                Skills by Category
+                            </h2>
+                            <div className="space-y-4">
+                                {Object.entries(stats.skillsByCategory)
+                                    .sort(([, a], [, b]) => b - a)
+                                    .map(([category, count]) => (
+                                        <div key={category}>
+                                            <div className="flex items-center justify-between text-sm mb-2">
+                                                <span className="text-gray-600">{category}</span>
+                                                <span className="font-medium text-black">{count}</span>
+                                            </div>
+                                            <Progress
+                                                value={(count / stats.totalSkills) * 100}
+                                                className="h-1.5"
+                                            />
+                                        </div>
+                                    ))}
+                            </div>
+                        </Card>
+                    )}
+
+                    {/* Goals Breakdown */}
+                    {Object.keys(stats.goalsByCategory).length > 0 && (
+                        <Card className="p-6 border border-gray-200">
+                            <h2 className="text-lg font-semibold text-black mb-4">
+                                Goals by Category
+                            </h2>
+                            <div className="space-y-4">
+                                {Object.entries(stats.goalsByCategory)
+                                    .sort(([, a], [, b]) => b - a)
+                                    .map(([category, count]) => (
+                                        <div key={category}>
+                                            <div className="flex items-center justify-between text-sm mb-2">
+                                                <span className="text-gray-600">{category}</span>
+                                                <span className="font-medium text-black">{count}</span>
+                                            </div>
+                                            <Progress
+                                                value={(count / stats.totalGoals) * 100}
+                                                className="h-1.5"
+                                            />
+                                        </div>
+                                    ))}
+                            </div>
+                        </Card>
+                    )}
+                </div>
+
+                {/* Recent Activity */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                    {/* Recent Skills */}
+                    {stats.recentSkills.length > 0 && (
+                        <Card className="p-6 border border-gray-200">
+                            <h2 className="text-lg font-semibold text-black mb-4">
+                                Recent Skills
+                            </h2>
+                            <div className="space-y-3">
+                                {stats.recentSkills.map((skill, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+                                    >
+                                        <div>
+                                            <div className="text-sm font-medium text-black">
+                                                {skill.name}
+                                            </div>
+                                            <div className="text-xs text-gray-500 capitalize">
+                                                {skill.proficiency_level}
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-gray-400">
+                                            {new Date(skill.created_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
+
+                    {/* Recent Goals */}
+                    {stats.recentGoals.length > 0 && (
+                        <Card className="p-6 border border-gray-200">
+                            <h2 className="text-lg font-semibold text-black mb-4">
+                                Recent Goals
+                            </h2>
+                            <div className="space-y-3">
+                                {stats.recentGoals.map((goal, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0"
+                                    >
+                                        <div>
+                                            <div className="text-sm font-medium text-black">
+                                                {goal.title}
+                                            </div>
+                                            <div className="text-xs text-gray-500 capitalize">
+                                                {goal.status}
+                                            </div>
+                                        </div>
+                                        <div className="text-xs text-gray-400">
+                                            {new Date(goal.created_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
+                </div>
+
+                {/* Empty State */}
+                {stats.totalSkills === 0 && stats.totalGoals === 0 && stats.totalProjects === 0 && (
+                    <Card className="p-12 border border-gray-200 text-center mt-8">
+                        <div className="text-gray-400 mb-4">
+                            <svg
+                                className="w-16 h-16 mx-auto mb-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                                />
+                            </svg>
+                            <h3 className="text-lg font-medium text-gray-600 mb-2">
+                                No data yet
+                            </h3>
+                            <p className="text-sm text-gray-500 mb-6">
+                                Start chatting with your AI career coach to build your profile
+                            </p>
+                            <Link
+                                href="/chat"
+                                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors"
+                            >
+                                Start Chatting
+                            </Link>
+                        </div>
+                    </Card>
+                )}
+            </div>
+        </div>
+    );
+}
