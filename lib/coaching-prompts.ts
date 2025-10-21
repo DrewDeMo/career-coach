@@ -112,11 +112,17 @@ function buildContextSections(context: EnhancedUserContext): string {
     if (context.coworkers.length > 0 &&
         ['relationships', 'decision_making', 'challenges_obstacles'].includes(context.intentAnalysis.primary)) {
         sections += '# Key Relationships\n'
-        context.coworkers.slice(0, 8).forEach(({ item: coworker }) => {
+        // Show all coworkers when listing, but limit to top 15 for other contexts
+        const coworkerLimit = context.intentAnalysis.keywords.some(k =>
+            ['list', 'show', 'who', 'all'].includes(k.toLowerCase())
+        ) ? context.coworkers.length : 15
+
+        context.coworkers.slice(0, coworkerLimit).forEach(({ item: coworker }) => {
             sections += `- **${coworker.name}**`
             if (coworker.role) sections += ` (${coworker.role})`
             if (coworker.influence_score) sections += ` - Influence: ${coworker.influence_score}/10`
             if (coworker.relationship_quality) sections += `, Relationship: ${coworker.relationship_quality}/10`
+            if (coworker.trust_level) sections += `, Trust: ${coworker.trust_level}/10`
             if (coworker.career_impact) sections += ` [${coworker.career_impact} impact]`
             sections += '\n'
         })
@@ -305,6 +311,18 @@ function buildConversationGuidelines(context: EnhancedUserContext): string {
 - Consider power dynamics and political implications
 - Respect confidentiality and professional boundaries
 - Help navigate conflicts with emotional intelligence
+
+**Relationship Analysis Guidelines**:
+- **Relationship Quality** (1-10) is the PRIMARY indicator of relationship health
+  - 1-3: Poor/strained relationships that need significant improvement
+  - 4-6: Neutral/developing relationships
+  - 7-10: Good/strong relationships
+- **Trust Level** (1-10) indicates reliability and confidence in the person
+  - Low trust with high relationship quality may indicate a friendly but unreliable person
+  - High trust with low relationship quality indicates respect but personal distance
+- **Influence Score** (1-10) indicates their power/impact in the organization
+- When asked about "worst relationships", prioritize those with the LOWEST relationship quality scores first
+- A relationship score of 7/10 is considered GOOD, even if trust is lower
 
 **Adaptive Tone**:
 - Match the user's emotional state (supportive when stressed, celebratory when successful)

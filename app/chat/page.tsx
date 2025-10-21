@@ -4,10 +4,13 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useRouter } from 'next/navigation'
 import ConversationSidebar from '@/components/ConversationSidebar'
 import SuggestionsPanel from '@/components/SuggestionsPanel'
-import { LayoutDashboard, User, LogOut, Send, MessageSquare, Loader2 } from 'lucide-react'
+import { LayoutDashboard, User, LogOut, Send, MessageSquare, Loader2, Cpu } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface Message {
     role: 'user' | 'assistant'
@@ -39,6 +42,7 @@ export default function ChatPage() {
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
     const [conversationsLoading, setConversationsLoading] = useState(true)
     const [suggestionsKey, setSuggestionsKey] = useState(0)
+    const [selectedModel, setSelectedModel] = useState('gpt-4o-mini')
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -157,7 +161,8 @@ export default function ChatPage() {
                     message: userMessage.content,
                     conversationId: currentConversationId,
                     conversationHistory: messages,
-                    stream: true
+                    stream: true,
+                    model: selectedModel
                 })
             })
 
@@ -311,7 +316,25 @@ export default function ChatPage() {
                                 <p className="text-sm text-gray-600">Your AI career development assistant</p>
                             </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                                <Cpu className="w-4 h-4 text-gray-600" />
+                                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                    <SelectTrigger className="w-[180px] h-8 text-xs border-0 bg-transparent">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="gpt-4.1">GPT-4.1 (Best)</SelectItem>
+                                        <SelectItem value="gpt-4.1-mini">GPT-4.1 Mini</SelectItem>
+                                        <SelectItem value="gpt-4.1-nano">GPT-4.1 Nano</SelectItem>
+                                        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                                        <SelectItem value="gpt-4o-mini">GPT-4o Mini (Default)</SelectItem>
+                                        <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                                        <SelectItem value="gpt-4">GPT-4</SelectItem>
+                                        <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                             <Button
                                 onClick={() => router.push('/dashboard')}
                                 variant="outline"
@@ -398,7 +421,15 @@ export default function ChatPage() {
                                                 : 'bg-gray-50 text-black border border-gray-200'
                                                 }`}
                                         >
-                                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                            {message.role === 'user' ? (
+                                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                            ) : (
+                                                <div className="text-sm markdown-content">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                        {message.content}
+                                                    </ReactMarkdown>
+                                                </div>
+                                            )}
                                             <p className={`text-xs mt-2 ${message.role === 'user' ? 'text-gray-300' : 'text-gray-500'
                                                 }`}>
                                                 {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

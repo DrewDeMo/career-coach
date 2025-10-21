@@ -124,7 +124,9 @@ IMPORTANT RULES:
 - Do NOT extract information that was already known (check existing context)
 - **For skills**: If the user mentions an EXISTING skill with NEW proficiency information, suggest it as a skill update (not a new skill)
 - **For skills**: Only suggest NEW skills if they are not already in the user's skill list
-- **For co-workers**: Extract names mentioned in professional context (colleagues, managers, team members)
+- **For co-workers**: Extract names mentioned in professional context (colleagues, managers, team members) ONLY from the USER's message, NOT from the assistant's response
+- **For co-workers**: Do NOT extract co-workers that are already in the existing context - they are already known
+- **For co-workers**: If the assistant is simply listing existing co-workers, do NOT extract them as new co-workers
 - **For interactions**: Only extract if specific interaction details are mentioned (not just name drops)
 - Include the exact quote or context where the information was mentioned
 - For skills, estimate proficiency (1-5) based on how they describe their experience
@@ -264,7 +266,7 @@ Assistant: ${assistantResponse}
 `
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages: [
         { role: 'system', content: EXTRACTION_PROMPT },
         { role: 'user', content: contextSummary }

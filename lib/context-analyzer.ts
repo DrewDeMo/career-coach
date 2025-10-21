@@ -60,10 +60,11 @@ const INTENT_PATTERNS = {
         keywords: [
             'coworker', 'colleague', 'team', 'manager', 'boss', 'relationship',
             'communication', 'conflict', 'collaborate', 'work with', 'meeting',
-            'feedback', 'interaction', 'people', 'person', 'someone', 'they'
+            'feedback', 'interaction', 'people', 'person', 'someone', 'they',
+            'list', 'show', 'who are'
         ],
         dataSources: [
-            { name: 'coworkers', priority: 'high' as const, limit: 12 },
+            { name: 'coworkers', priority: 'high' as const, limit: 50 },
             { name: 'interactions', priority: 'high' as const, limit: 10 },
             { name: 'decisions', priority: 'medium' as const, limit: 5 },
             { name: 'challenges', priority: 'medium' as const, limit: 5 },
@@ -118,7 +119,7 @@ const INTENT_PATTERNS = {
             { name: 'goals', priority: 'high' as const, limit: 5 },
             { name: 'skills', priority: 'high' as const, limit: 10 },
             { name: 'projects', priority: 'medium' as const, limit: 5 },
-            { name: 'coworkers', priority: 'medium' as const, limit: 8 },
+            { name: 'coworkers', priority: 'medium' as const, limit: 20 },
             { name: 'challenges', priority: 'medium' as const, limit: 3 },
             { name: 'achievements', priority: 'low' as const, limit: 3 },
             { name: 'interactions', priority: 'low' as const, limit: 5 },
