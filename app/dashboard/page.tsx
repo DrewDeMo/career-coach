@@ -292,6 +292,12 @@ export default function DashboardPage() {
                                 Chat
                             </Link>
                             <Link
+                                href="/coworkers"
+                                className="px-4 py-2 text-sm font-medium text-black hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors"
+                            >
+                                Co-workers
+                            </Link>
+                            <Link
                                 href="/profile"
                                 className="px-4 py-2 text-sm font-medium text-black hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors"
                             >

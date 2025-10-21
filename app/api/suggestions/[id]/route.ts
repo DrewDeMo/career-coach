@@ -163,6 +163,71 @@ export async function PATCH(
                     insertError = profileUpdateError
                     break
 
+                case 'coworker':
+                    const { error: coworkerError } = await supabase.from('coworkers').insert({
+                        user_id: user.id,
+                        name: entityData.name,
+                        role: entityData.role || null,
+                        department: entityData.department || null,
+                        seniority_level: entityData.seniority_level || null,
+                        relationship: entityData.relationship || null,
+                        influence_score: entityData.influence_score || null,
+                        relationship_quality: entityData.relationship_quality || null,
+                        trust_level: entityData.trust_level || null,
+                        personality_traits: entityData.personality_traits || {},
+                        working_style: entityData.working_style || {},
+                        career_impact: entityData.career_impact || null,
+                        notes: {}
+                    })
+                    insertError = coworkerError
+                    break
+
+                case 'interaction':
+                    // Find the coworker by name
+                    const { data: coworker, error: coworkerFindError } = await supabase
+                        .from('coworkers')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .ilike('name', entityData.coworker_name)
+                        .single()
+
+                    if (coworkerFindError || !coworker) {
+                        insertError = coworkerFindError || new Error('Co-worker not found')
+                        break
+                    }
+
+                    const { error: interactionError } = await supabase.from('coworker_interactions').insert({
+                        user_id: user.id,
+                        coworker_id: coworker.id,
+                        interaction_date: entityData.interaction_date || new Date().toISOString(),
+                        interaction_type: entityData.interaction_type,
+                        sentiment: entityData.sentiment,
+                        impact_on_career: entityData.impact_on_career || null,
+                        description: entityData.description,
+                        outcomes: entityData.outcomes || null,
+                        notes: {}
+                    })
+                    insertError = interactionError
+                    break
+
+                case 'decision':
+                    const { error: decisionError } = await supabase.from('decisions').insert({
+                        user_id: user.id,
+                        title: entityData.title,
+                        description: entityData.description,
+                        reasoning: entityData.reasoning || null,
+                        expected_outcome: entityData.expected_outcome || null,
+                        related_coworkers: entityData.related_coworkers || [],
+                        related_goals: entityData.related_goals || [],
+                        related_projects: [],
+                        status: 'pending',
+                        impact_score: entityData.impact_score || null,
+                        confidence_level: entityData.confidence_level || null,
+                        tags: []
+                    })
+                    insertError = decisionError
+                    break
+
                 default:
                     return NextResponse.json(
                         { error: 'Unknown entity type' },

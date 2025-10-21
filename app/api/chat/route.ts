@@ -12,6 +12,7 @@ interface UserContext {
     skills: any[]
     goals: any[]
     recentProjects: any[]
+    coworkers: any[]
 }
 
 async function getUserContext(userId: string): Promise<UserContext> {
@@ -49,16 +50,25 @@ async function getUserContext(userId: string): Promise<UserContext> {
         .order('start_date', { ascending: false })
         .limit(5)
 
+    // Fetch coworkers
+    const { data: coworkers } = await supabase
+        .from('coworkers')
+        .select('*')
+        .eq('user_id', userId)
+        .order('influence_score', { ascending: false, nullsFirst: false })
+        .limit(10)
+
     return {
         profile: profile || {},
         skills: skills || [],
         goals: goals || [],
-        recentProjects: recentProjects || []
+        recentProjects: recentProjects || [],
+        coworkers: coworkers || []
     }
 }
 
 function buildSystemPrompt(context: UserContext): string {
-    const { profile, skills, goals, recentProjects } = context
+    const { profile, skills, goals, recentProjects, coworkers } = context
 
     let prompt = `You are an expert AI career coach providing personalized guidance. You are supportive, insightful, and action-oriented.
 
@@ -87,7 +97,7 @@ function buildSystemPrompt(context: UserContext): string {
     if (skills.length > 0) {
         prompt += `\n# Current Skills\n`
         skills.forEach(skill => {
-            prompt += `- ${skill.skill_name} (${skill.category || 'General'}) - Proficiency: ${skill.proficiency_level}/5\n`
+            prompt += `- ${skill.name || skill.skill_name} (${skill.category || 'General'}) - Proficiency: ${skill.proficiency_level}\n`
         })
     }
 
@@ -108,9 +118,29 @@ function buildSystemPrompt(context: UserContext): string {
     if (recentProjects.length > 0) {
         prompt += `\n# Recent Projects\n`
         recentProjects.forEach(project => {
-            prompt += `- ${project.project_name}`
+            prompt += `- ${project.name}`
             if (project.description) {
                 prompt += `: ${project.description}`
+            }
+            prompt += `\n`
+        })
+    }
+
+    if (coworkers.length > 0) {
+        prompt += `\n# Key Co-workers & Relationships\n`
+        coworkers.forEach(coworker => {
+            prompt += `- ${coworker.name}`
+            if (coworker.role) {
+                prompt += ` (${coworker.role})`
+            }
+            if (coworker.influence_score) {
+                prompt += ` - Influence: ${coworker.influence_score}/10`
+            }
+            if (coworker.relationship_quality) {
+                prompt += `, Relationship: ${coworker.relationship_quality}/10`
+            }
+            if (coworker.career_impact) {
+                prompt += ` [${coworker.career_impact} impact]`
             }
             prompt += `\n`
         })
@@ -119,22 +149,26 @@ function buildSystemPrompt(context: UserContext): string {
     prompt += `
 
 # Your Role as Career Coach
-- Provide personalized advice based on the user's profile, skills, and goals
+- Provide personalized advice based on the user's profile, skills, goals, and relationships
 - Be encouraging and supportive while being honest and realistic
 - Suggest specific, actionable steps the user can take
 - Help identify skill gaps and learning opportunities
 - Assist with career planning, goal setting, and professional development
+- Provide guidance on workplace relationships and office dynamics
+- Help navigate career decisions considering relationship impacts
 - Ask clarifying questions when needed to provide better guidance
 - Keep responses concise but comprehensive (aim for 2-4 paragraphs)
 - Use a warm, professional tone
 
 # Guidelines
-- Reference the user's specific context when relevant
+- Reference the user's specific context when relevant (skills, goals, relationships)
+- Consider relationship dynamics when giving advice about career moves
 - Provide concrete examples and resources when possible
 - Help break down large goals into manageable steps
 - Celebrate progress and achievements
 - Be honest about challenges while maintaining optimism
-- Respect the user's career choices and aspirations`
+- Respect the user's career choices and aspirations
+- When discussing co-workers, be professional and constructive`
 
     return prompt
 }
@@ -148,7 +182,7 @@ async function saveSuggestions(
     const suggestions = []
 
     // Valid entity types according to database constraint
-    const validEntityTypes = ['skill', 'skill_update', 'goal', 'project', 'challenge', 'achievement', 'profile_update']
+    const validEntityTypes = ['skill', 'skill_update', 'goal', 'project', 'challenge', 'achievement', 'profile_update', 'coworker', 'interaction', 'decision']
 
     // Helper function to validate and create suggestion
     const createSuggestion = (entityType: string, entityData: any, context: string) => {
@@ -221,6 +255,30 @@ async function saveSuggestions(
     if (Array.isArray(entities.profileUpdates)) {
         for (const update of entities.profileUpdates) {
             const suggestion = createSuggestion('profile_update', update, update.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add coworkers
+    if (Array.isArray(entities.coworkers)) {
+        for (const coworker of entities.coworkers) {
+            const suggestion = createSuggestion('coworker', coworker, coworker.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add interactions
+    if (Array.isArray(entities.interactions)) {
+        for (const interaction of entities.interactions) {
+            const suggestion = createSuggestion('interaction', interaction, interaction.context)
+            if (suggestion) suggestions.push(suggestion)
+        }
+    }
+
+    // Add decisions
+    if (Array.isArray(entities.decisions)) {
+        for (const decision of entities.decisions) {
+            const suggestion = createSuggestion('decision', decision, decision.context)
             if (suggestion) suggestions.push(suggestion)
         }
     }
