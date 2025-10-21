@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const { message } = await request.json()
+        const { message, conversationId, conversationHistory } = await request.json()
 
         if (!message || typeof message !== 'string') {
             return NextResponse.json(
@@ -166,27 +166,89 @@ export async function POST(request: NextRequest) {
         // Build system prompt with context
         const systemPrompt = buildSystemPrompt(context)
 
+        // Build messages array for OpenAI (include conversation history if provided)
+        const messages: any[] = [
+            { role: 'system', content: systemPrompt }
+        ]
+
+        // Add conversation history if provided
+        if (conversationHistory && Array.isArray(conversationHistory)) {
+            conversationHistory.forEach((msg: any) => {
+                messages.push({
+                    role: msg.role,
+                    content: msg.content
+                })
+            })
+        }
+
+        // Add current user message
+        messages.push({ role: 'user', content: message })
+
         // Call OpenAI API
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: message }
-            ],
+            messages,
             temperature: 0.7,
             max_tokens: 1000
         })
 
         const assistantMessage = completion.choices[0]?.message?.content || 'I apologize, but I was unable to generate a response. Please try again.'
 
-        // Save conversation to database
-        await supabase.from('conversations').insert({
-            user_id: user.id,
-            user_message: message,
-            assistant_message: assistantMessage,
-            model_used: 'gpt-4o-mini',
-            tokens_used: completion.usage?.total_tokens || 0
-        })
+        // Create new message objects
+        const userMsg = {
+            role: 'user',
+            content: message,
+            timestamp: new Date().toISOString()
+        }
+
+        const assistantMsg = {
+            role: 'assistant',
+            content: assistantMessage,
+            timestamp: new Date().toISOString()
+        }
+
+        // Update or create conversation
+        if (conversationId) {
+            // Fetch existing conversation
+            const { data: existingConv } = await supabase
+                .from('conversations')
+                .select('messages, title')
+                .eq('id', conversationId)
+                .eq('user_id', user.id)
+                .single()
+
+            if (existingConv) {
+                const updatedMessages = [
+                    ...(Array.isArray(existingConv.messages) ? existingConv.messages : []),
+                    userMsg,
+                    assistantMsg
+                ]
+
+                // Generate title from first message if not set
+                let title = existingConv.title
+                if (!title && updatedMessages.length === 2) {
+                    title = message.substring(0, 50) + (message.length > 50 ? '...' : '')
+                }
+
+                await supabase
+                    .from('conversations')
+                    .update({
+                        messages: updatedMessages,
+                        title,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', conversationId)
+            }
+        } else {
+            // Create new conversation
+            const title = message.substring(0, 50) + (message.length > 50 ? '...' : '')
+
+            await supabase.from('conversations').insert({
+                user_id: user.id,
+                title,
+                messages: [userMsg, assistantMsg]
+            })
+        }
 
         return NextResponse.json({
             message: assistantMessage,
